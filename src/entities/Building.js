@@ -6,26 +6,33 @@ export default class Building {
         this.name = name;
         this.type = type; // 'swap', 'nft', 'faucet', 'staking'
         this.isNearby = false;
+        this.popupOpened = false; // Track if popup is already open
 
-        // Create sprite
+        // Calculate offset
+        const offsetX = this.scene.cameras.main.width / 2;
+        const offsetY = this.scene.cameras.main.height / 2 - 200;
+
+        // Create simple sprite marker
         const pos = this.scene.cartesianToIsometric(gridX, gridY);
-        this.sprite = this.scene.add.sprite(pos.x, pos.y - 40, texture);
-        this.sprite.setOrigin(0.5, 1);
+        this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY, texture);
+        this.sprite.setOrigin(0.5, 0.5);
+        this.sprite.setScale(1.0);
         
-        const depth = gridY * 100 + gridX;
+        // Higher depth to appear above tiles
+        const depth = gridY * 100 + gridX + 1000;
         this.sprite.setDepth(depth);
 
-        // Create interaction hint (E key)
-        this.hintText = this.scene.add.text(pos.x, pos.y - 140, 'Press E', {
-            font: 'bold 16px Arial',
+        // Simple label above marker
+        this.hintText = this.scene.add.text(pos.x + offsetX, pos.y + offsetY - 50, this.name, {
+            font: 'bold 14px Arial',
             fill: '#ffffff',
-            backgroundColor: 'rgba(255, 0, 128, 0.8)',
-            padding: { x: 8, y: 4 },
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            padding: { x: 6, y: 4 },
             borderRadius: 4
         });
         this.hintText.setOrigin(0.5);
-        this.hintText.setDepth(depth + 1);
-        this.hintText.setVisible(false);
+        this.hintText.setDepth(depth + 10);
+        this.hintText.setVisible(true);
 
         // Add pulsing animation to building
         this.scene.tweens.add({
@@ -38,8 +45,8 @@ export default class Building {
             ease: 'Sine.easeInOut'
         });
 
-        // Add particle glow
-        this.createGlowEffect(pos.x, pos.y - 80);
+        // Simple glow effect
+        this.createGlowEffect(pos.x + offsetX, pos.y + offsetY);
     }
 
     createGlowEffect(x, y) {
@@ -72,37 +79,31 @@ export default class Building {
         if (this.isNearby === isNear) return;
         
         this.isNearby = isNear;
-        this.hintText.setVisible(isNear);
-
+        
+        // Scale up when near
         if (isNear) {
-            // Scale up animation
             this.scene.tweens.add({
-                targets: this.hintText,
-                scaleX: 1.1,
-                scaleY: 1.1,
+                targets: this.sprite,
+                scaleX: 1.3,
+                scaleY: 1.3,
                 duration: 200,
-                yoyo: true,
-                repeat: -1
+                ease: 'Back.easeOut'
             });
         } else {
-            this.scene.tweens.killTweensOf(this.hintText);
-            this.hintText.setScale(1);
+            this.scene.tweens.add({
+                targets: this.sprite,
+                scaleX: 1.0,
+                scaleY: 1.0,
+                duration: 200,
+                ease: 'Back.easeOut'
+            });
         }
     }
 
     interact() {
         console.log(`Interacting with ${this.name} (${this.type})`);
         
-        // Flash effect
-        this.scene.tweens.add({
-            targets: this.sprite,
-            alpha: 0.7,
-            duration: 100,
-            yoyo: true,
-            repeat: 2
-        });
-
-        // Open popup
+        // Open popup directly (no flash effect needed for auto-open)
         this.openPopup();
     }
 

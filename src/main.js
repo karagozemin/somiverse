@@ -3,7 +3,6 @@ import BootScene from './scenes/BootScene.js';
 import MainScene from './scenes/MainScene.js';
 import UIScene from './scenes/UIScene.js';
 import './utils/ToastManager.js';
-import './utils/SettingsManager.js';
 import './web3/wallet.js';
 
 // Game configuration
@@ -12,7 +11,7 @@ const config = {
     parent: 'phaser-game',
     width: 1920,
     height: 1080,
-    backgroundColor: '#0f0f1e',
+    transparent: true, // Transparent background to show CSS gradient
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
@@ -29,7 +28,8 @@ const config = {
         pixelArt: false,
         antialias: true,
         antialiasGL: true,
-        roundPixels: false
+        roundPixels: false,
+        smoothTextures: true
     }
 };
 

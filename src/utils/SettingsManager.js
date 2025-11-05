@@ -48,42 +48,14 @@ class SettingsManager {
     }
 
     createSettingsButton() {
-        const button = document.createElement('button');
-        button.id = 'settings-button';
-        button.innerHTML = '⚙️';
-        button.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #FF0080 0%, #8B5CF6 100%);
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4);
-            transition: all 0.3s ease;
-            z-index: 999;
-        `;
-
-        button.addEventListener('mouseenter', () => {
-            button.style.transform = 'scale(1.1) rotate(90deg)';
-        });
-
-        button.addEventListener('mouseleave', () => {
-            button.style.transform = 'scale(1) rotate(0deg)';
-        });
-
-        button.addEventListener('click', () => {
-            this.toggleSettingsPanel();
-        });
-
-        document.body.appendChild(button);
+        // Settings button disabled - user requested removal
+        // const button = document.createElement('button');
+        // ... (removed)
     }
 
     createSettingsPanel() {
+        // Settings panel disabled - user requested removal
+        return;
         const panel = document.createElement('div');
         panel.id = 'settings-panel';
         panel.style.cssText = `

@@ -6,14 +6,18 @@ export default class Player {
         this.speed = 0.1;
         this.isMoving = false;
 
+        // Calculate offset to match map position
+        const offsetX = this.scene.cameras.main.width / 2;
+        const offsetY = this.scene.cameras.main.height / 2 - 200;
+
         // Create sprite
         const pos = this.scene.cartesianToIsometric(gridX, gridY);
-        this.sprite = this.scene.add.sprite(pos.x, pos.y - 20, 'player');
+        this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY - 20, 'player');
         this.sprite.setOrigin(0.5, 0.5);
         this.updateDepth();
 
         // Add glow effect
-        this.glow = this.scene.add.circle(pos.x, pos.y, 30, 0xFF0080, 0.2);
+        this.glow = this.scene.add.circle(pos.x + offsetX, pos.y + offsetY, 30, 0xFF0080, 0.2);
         this.glow.setDepth(this.sprite.depth - 1);
 
         // Animate glow
@@ -37,12 +41,16 @@ export default class Player {
         this.gridX = newGridX;
         this.gridY = newGridY;
 
+        // Calculate offset
+        const offsetX = this.scene.cameras.main.width / 2;
+        const offsetY = this.scene.cameras.main.height / 2 - 200;
+
         // Convert to isometric position
         const pos = this.scene.cartesianToIsometric(this.gridX, this.gridY);
-        this.sprite.x = pos.x;
-        this.sprite.y = pos.y - 20;
-        this.glow.x = pos.x;
-        this.glow.y = pos.y;
+        this.sprite.x = pos.x + offsetX;
+        this.sprite.y = pos.y + offsetY - 20;
+        this.glow.x = pos.x + offsetX;
+        this.glow.y = pos.y + offsetY;
 
         this.updateDepth();
 

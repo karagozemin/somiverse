@@ -8,15 +8,15 @@ export default class MainScene extends Phaser.Scene {
     }
 
     create() {
-        // Isometric grid settings
-        this.tileWidth = 128;
-        this.tileHeight = 64;
+        // Isometric grid settings (updated to match new tile size)
+        this.tileWidth = 130;
+        this.tileHeight = 66;
         this.gridWidth = 20;
         this.gridHeight = 20;
 
-        // Camera setup
-        this.cameras.main.setBounds(0, 0, 2560, 2560);
-        this.cameras.main.setZoom(1);
+        // Camera setup - Centered map
+        this.cameras.main.setBounds(-500, -500, 3000, 3000);
+        this.cameras.main.setZoom(0.85); // Optimal zoom level
 
         // Create the isometric world
         this.createIsometricWorld();
@@ -25,8 +25,8 @@ export default class MainScene extends Phaser.Scene {
         this.buildings = [];
         this.createBuildings();
 
-        // Create player
-        this.player = new Player(this, 5, 5);
+        // Create player at center
+        this.player = new Player(this, 10, 10);
         
         // Camera follows player
         this.cameras.main.startFollow(this.player.sprite, true, 0.1, 0.1);
@@ -49,7 +49,11 @@ export default class MainScene extends Phaser.Scene {
     createIsometricWorld() {
         this.tiles = [];
         
-        // Create a simple map with grass, water, and paths
+        // Calculate offset to center the map
+        const offsetX = this.cameras.main.width / 2;
+        const offsetY = this.cameras.main.height / 2 - 200;
+        
+        // Create a professional map with grass, water, paths, trees, and stones
         for (let y = 0; y < this.gridHeight; y++) {
             this.tiles[y] = [];
             for (let x = 0; x < this.gridWidth; x++) {
@@ -59,16 +63,26 @@ export default class MainScene extends Phaser.Scene {
                 if (x === 0 || x === this.gridWidth - 1 || y === 0 || y === this.gridHeight - 1) {
                     tileType = 'tile-water';
                 }
-                
-                // Paths in cross pattern
-                if (x === 10 || y === 10) {
+                // Paths in cross pattern (stone path)
+                else if (x === 10 || y === 10) {
                     tileType = 'tile-path';
+                }
+                // Random decorative elements on grass
+                else {
+                    const rand = Math.random();
+                    if (rand < 0.08) { // 8% chance for tree
+                        tileType = 'tile-tree';
+                    } else if (rand < 0.12) { // 4% chance for stone
+                        tileType = 'tile-stone';
+                    }
                 }
                 
                 const isoPos = this.cartesianToIsometric(x, y);
-                const tile = this.add.image(isoPos.x, isoPos.y, tileType);
+                const tile = this.add.image(isoPos.x + offsetX, isoPos.y + offsetY, tileType);
                 tile.setOrigin(0.5, 0.5);
                 tile.setDepth(y * 100 + x);
+                tile.setTint(0xffffff);
+                tile.setAlpha(1);
                 
                 this.tiles[y][x] = {
                     sprite: tile,
@@ -81,17 +95,17 @@ export default class MainScene extends Phaser.Scene {
     }
 
     createBuildings() {
-        // Swap City - Top left quadrant
-        this.buildings.push(new Building(this, 5, 5, 'building-swap', 'Swap City', 'swap'));
+        // Simple building markers - Top left quadrant
+        this.buildings.push(new Building(this, 6, 6, 'building-swap', 'Swap City', 'swap'));
         
         // NFT Gallery - Top right quadrant
-        this.buildings.push(new Building(this, 15, 5, 'building-nft', 'NFT Gallery', 'nft'));
+        this.buildings.push(new Building(this, 14, 6, 'building-nft', 'NFT Gallery', 'nft'));
         
         // Token Fountain - Bottom left quadrant
-        this.buildings.push(new Building(this, 5, 15, 'building-faucet', 'Token Fountain', 'faucet'));
+        this.buildings.push(new Building(this, 6, 14, 'building-faucet', 'Token Fountain', 'faucet'));
         
         // Staking Tower - Bottom right quadrant
-        this.buildings.push(new Building(this, 15, 15, 'building-staking', 'Staking Tower', 'staking'));
+        this.buildings.push(new Building(this, 14, 14, 'building-staking', 'Staking Tower', 'staking'));
     }
 
     update() {
@@ -117,12 +131,7 @@ export default class MainScene extends Phaser.Scene {
             this.player.move(moveX, moveY);
         }
 
-        // Check building interaction
-        if (Phaser.Input.Keyboard.JustDown(this.keys.E) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
-            this.checkBuildingInteraction();
-        }
-
-        // Check proximity to buildings (show hints)
+        // Check proximity to buildings (auto-open on close)
         this.checkBuildingProximity();
     }
 
@@ -150,7 +159,16 @@ export default class MainScene extends Phaser.Scene {
                 building.gridX, building.gridY
             );
             
-            building.setProximity(distance < 2);
+            const isNear = distance < 2;
+            building.setProximity(isNear);
+            
+            // Auto-open popup when close (no need to press E)
+            if (isNear && !building.popupOpened) {
+                building.popupOpened = true;
+                building.interact();
+            } else if (!isNear) {
+                building.popupOpened = false;
+            }
         });
     }
 
@@ -160,8 +178,8 @@ export default class MainScene extends Phaser.Scene {
         const isoY = (cartX + cartY) * (this.tileHeight / 2);
         
         return {
-            x: isoX + this.cameras.main.width / 2,
-            y: isoY + 100
+            x: isoX,
+            y: isoY
         };
     }
 

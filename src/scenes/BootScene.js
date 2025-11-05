@@ -64,58 +64,22 @@ export default class BootScene extends Phaser.Scene {
     }
 
     createPlaceholderAssets() {
-        // Create isometric tile (grass)
-        const tileGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        
         // Isometric diamond shape (2:1 ratio)
-        const tileWidth = 128;
-        const tileHeight = 64;
+        const tileWidth = 130;
+        const tileHeight = 66;
         
-        tileGraphics.fillStyle(0x4ade80, 1);
-        tileGraphics.beginPath();
-        tileGraphics.moveTo(tileWidth / 2, 0);
-        tileGraphics.lineTo(tileWidth, tileHeight / 2);
-        tileGraphics.lineTo(tileWidth / 2, tileHeight);
-        tileGraphics.lineTo(0, tileHeight / 2);
-        tileGraphics.closePath();
-        tileGraphics.fillPath();
+        // Create professional grass tile with texture
+        this.createGrassTile(tileWidth, tileHeight);
         
-        // Border
-        tileGraphics.lineStyle(2, 0x22c55e, 1);
-        tileGraphics.strokePath();
+        // Create professional water tile
+        this.createWaterTile(tileWidth, tileHeight);
         
-        tileGraphics.generateTexture('tile-grass', tileWidth, tileHeight);
-        tileGraphics.destroy();
-
-        // Create water tile
-        const waterGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        waterGraphics.fillStyle(0x00D4FF, 1);
-        waterGraphics.beginPath();
-        waterGraphics.moveTo(tileWidth / 2, 0);
-        waterGraphics.lineTo(tileWidth, tileHeight / 2);
-        waterGraphics.lineTo(tileWidth / 2, tileHeight);
-        waterGraphics.lineTo(0, tileHeight / 2);
-        waterGraphics.closePath();
-        waterGraphics.fillPath();
-        waterGraphics.lineStyle(2, 0x0891b2, 1);
-        waterGraphics.strokePath();
-        waterGraphics.generateTexture('tile-water', tileWidth, tileHeight);
-        waterGraphics.destroy();
-
-        // Create path tile
-        const pathGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        pathGraphics.fillStyle(0xfbbf24, 1);
-        pathGraphics.beginPath();
-        pathGraphics.moveTo(tileWidth / 2, 0);
-        pathGraphics.lineTo(tileWidth, tileHeight / 2);
-        pathGraphics.lineTo(tileWidth / 2, tileHeight);
-        pathGraphics.lineTo(0, tileHeight / 2);
-        pathGraphics.closePath();
-        pathGraphics.fillPath();
-        pathGraphics.lineStyle(2, 0xf59e0b, 1);
-        pathGraphics.strokePath();
-        pathGraphics.generateTexture('tile-path', tileWidth, tileHeight);
-        pathGraphics.destroy();
+        // Create professional path tile (stone path)
+        this.createPathTile(tileWidth, tileHeight);
+        
+        // Create decorative elements
+        this.createTreeTile(tileWidth, tileHeight);
+        this.createStoneTile(tileWidth, tileHeight);
 
         // Create player sprite (simple circle)
         const playerGraphics = this.make.graphics({ x: 0, y: 0, add: false });
@@ -126,75 +90,319 @@ export default class BootScene extends Phaser.Scene {
         playerGraphics.generateTexture('player', 64, 64);
         playerGraphics.destroy();
 
-        // Create building sprites
-        this.createBuildingSprite('building-swap', 0xFF0080, 'SWAP');
-        this.createBuildingSprite('building-nft', 0x8B5CF6, 'NFT');
-        this.createBuildingSprite('building-faucet', 0x00D4FF, 'FAUCET');
-        this.createBuildingSprite('building-staking', 0xfbbf24, 'STAKE');
+        // Create simple building markers
+        this.createSimpleBuildingMarker('building-swap', 0xFF0080, '💱');
+        this.createSimpleBuildingMarker('building-nft', 0x8B5CF6, '🎨');
+        this.createSimpleBuildingMarker('building-faucet', 0x00D4FF, '🚰');
+        this.createSimpleBuildingMarker('building-staking', 0xfbbf24, '🔒');
     }
 
-    createBuildingSprite(key, color, label) {
-        const width = 128;
-        const height = 160;
+    createGrassTile(width, height) {
         const graphics = this.make.graphics({ x: 0, y: 0, add: false });
         
-        // Building body (isometric cube)
-        graphics.fillStyle(color, 1);
+        // Base grass color (darker, more natural)
+        const baseColor = 0x2d7a3d;
+        const lightColor = 0x3d9a4d;
+        const darkColor = 0x1d5a2d;
         
-        // Front face
+        // Fill base
+        graphics.fillStyle(baseColor, 1);
         graphics.beginPath();
-        graphics.moveTo(width / 2, height - 80);
-        graphics.lineTo(width, height - 40);
-        graphics.lineTo(width, height);
-        graphics.lineTo(width / 2, height - 40);
+        graphics.moveTo(width / 2, 0);
+        graphics.lineTo(width, height / 2);
+        graphics.lineTo(width / 2, height);
+        graphics.lineTo(0, height / 2);
         graphics.closePath();
         graphics.fillPath();
         
-        // Left face (darker)
-        const darkerColor = Phaser.Display.Color.IntegerToColor(color).darken(30).color;
-        graphics.fillStyle(darkerColor, 1);
+        // Add texture with random grass patches
+        for (let i = 0; i < 8; i++) {
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            const size = 3 + Math.random() * 4;
+            graphics.fillStyle(lightColor, 0.4 + Math.random() * 0.3);
+            graphics.fillCircle(x, y, size);
+        }
+        
+        // Darker patches for depth
+        for (let i = 0; i < 5; i++) {
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            const size = 2 + Math.random() * 3;
+            graphics.fillStyle(darkColor, 0.3);
+            graphics.fillCircle(x, y, size);
+        }
+        
+        graphics.generateTexture('tile-grass', width, height);
+        graphics.destroy();
+    }
+    
+    createWaterTile(width, height) {
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        
+        // Professional water colors (deeper blue)
+        const baseColor = 0x1e4d72;
+        const lightColor = 0x2e6d92;
+        
+        // Base water
+        graphics.fillStyle(baseColor, 1);
         graphics.beginPath();
-        graphics.moveTo(width / 2, height - 80);
-        graphics.lineTo(0, height - 40);
-        graphics.lineTo(0, height);
-        graphics.lineTo(width / 2, height - 40);
+        graphics.moveTo(width / 2, 0);
+        graphics.lineTo(width, height / 2);
+        graphics.lineTo(width / 2, height);
+        graphics.lineTo(0, height / 2);
         graphics.closePath();
         graphics.fillPath();
         
-        // Top face (lighter)
-        const lighterColor = Phaser.Display.Color.IntegerToColor(color).lighten(20).color;
-        graphics.fillStyle(lighterColor, 1);
+        // Water waves/ripples
+        for (let i = 0; i < 6; i++) {
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            const size = 4 + Math.random() * 6;
+            graphics.fillStyle(lightColor, 0.3);
+            graphics.fillEllipse(x, y, size, size / 2);
+        }
+        
+        graphics.generateTexture('tile-water', width, height);
+        graphics.destroy();
+    }
+    
+    createPathTile(width, height) {
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        
+        // Professional stone path colors (warm brown/gray)
+        const baseColor = 0x8b7355;
+        const lightColor = 0xa5937d;
+        const darkColor = 0x6b5d45;
+        
+        // Base path
+        graphics.fillStyle(baseColor, 1);
         graphics.beginPath();
-        graphics.moveTo(width / 2, height - 80);
-        graphics.lineTo(width, height - 40);
-        graphics.lineTo(width / 2, height - 100);
-        graphics.lineTo(0, height - 40);
+        graphics.moveTo(width / 2, 0);
+        graphics.lineTo(width, height / 2);
+        graphics.lineTo(width / 2, height);
+        graphics.lineTo(0, height / 2);
         graphics.closePath();
         graphics.fillPath();
         
-        // Add glow effect
-        graphics.lineStyle(3, 0xffffff, 0.5);
-        graphics.strokeRect(width / 2 - 20, height - 70, 40, 30);
+        // Stone texture - individual stones (rounded rectangles)
+        const stoneSize = 8;
+        for (let x = 5; x < width - 5; x += stoneSize + 2) {
+            for (let y = 5; y < height - 5; y += stoneSize / 2 + 1) {
+                const offsetX = (Math.random() - 0.5) * 2;
+                const offsetY = (Math.random() - 0.5) * 2;
+                const stoneColor = Math.random() > 0.5 ? lightColor : darkColor;
+                graphics.fillStyle(stoneColor, 0.7);
+                // Use regular rect with rounded corners manually
+                graphics.fillRect(x + offsetX, y + offsetY, stoneSize, stoneSize / 2);
+                // Add rounded corners effect with small circles
+                graphics.fillStyle(baseColor, 0.3);
+                graphics.fillCircle(x + offsetX, y + offsetY, 1);
+                graphics.fillCircle(x + offsetX + stoneSize, y + offsetY, 1);
+                graphics.fillCircle(x + offsetX, y + offsetY + stoneSize / 2, 1);
+                graphics.fillCircle(x + offsetX + stoneSize, y + offsetY + stoneSize / 2, 1);
+            }
+        }
         
+        graphics.generateTexture('tile-path', width, height);
+        graphics.destroy();
+    }
+    
+    createTreeTile(width, height) {
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        
+        // Tree trunk
+        graphics.fillStyle(0x5d4037, 1);
+        graphics.fillRect(width / 2 - 3, height / 2 + 5, 6, 12);
+        
+        // Tree leaves (multiple layers)
+        graphics.fillStyle(0x2d5016, 0.8);
+        graphics.fillCircle(width / 2 - 8, height / 2 - 5, 8);
+        graphics.fillCircle(width / 2 + 8, height / 2 - 5, 8);
+        graphics.fillCircle(width / 2, height / 2 - 10, 10);
+        
+        graphics.fillStyle(0x3d7026, 0.6);
+        graphics.fillCircle(width / 2, height / 2 - 8, 12);
+        
+        graphics.generateTexture('tile-tree', width, height);
+        graphics.destroy();
+    }
+    
+    createStoneTile(width, height) {
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        
+        // Base grass (same as grass tile)
+        graphics.fillStyle(0x2d7a3d, 1);
+        graphics.beginPath();
+        graphics.moveTo(width / 2, 0);
+        graphics.lineTo(width, height / 2);
+        graphics.lineTo(width / 2, height);
+        graphics.lineTo(0, height / 2);
+        graphics.closePath();
+        graphics.fillPath();
+        
+        // Stone/rock
+        graphics.fillStyle(0x6b6b6b, 0.9);
+        graphics.fillEllipse(width / 2, height / 2, 12, 8);
+        graphics.fillStyle(0x4b4b4b, 0.7);
+        graphics.fillEllipse(width / 2 - 2, height / 2 - 2, 8, 6);
+        
+        graphics.generateTexture('tile-stone', width, height);
+        graphics.destroy();
+    }
+
+    createSimpleBuildingMarker(key, color, icon) {
+        const width = 80;
+        const height = 80;
+        
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        
+        // Simple circle with color
+        graphics.fillStyle(color, 0.8);
+        graphics.fillCircle(width / 2, height / 2, 35);
+        
+        // No border - clean circle
         graphics.generateTexture(key, width, height);
         
-        // Add text label
+        // Create icon text
         const text = this.make.text({
             x: width / 2,
-            y: 20,
-            text: label,
+            y: height / 2,
+            text: icon,
             style: {
-                font: 'bold 14px Arial',
+                font: 'bold 32px Arial',
                 fill: '#ffffff',
                 stroke: '#000000',
-                strokeThickness: 3
+                strokeThickness: 4
             }
         }, false);
-        text.setOrigin(0.5);
+        text.setOrigin(0.5, 0.5);
         
+        // Combine
         const rt = this.make.renderTexture({ x: 0, y: 0, width, height }, false);
         rt.draw(graphics, 0, 0);
         rt.draw(text, 0, 0);
+        rt.saveTexture(key);
+        rt.destroy();
+        
+        graphics.destroy();
+        text.destroy();
+    }
+
+    createDetailedBuilding(key, color, label) {
+        const width = 300;
+        const height = 400;
+        const buildingHeight = 180;
+        const baseWidth = 250;
+        const baseHeight = 120;
+        
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        
+        // Building base (larger isometric diamond)
+        graphics.fillStyle(color, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(baseWidth / 2, height - baseHeight);
+        graphics.lineTo(baseWidth, height - baseHeight / 2);
+        graphics.lineTo(baseWidth / 2, height);
+        graphics.lineTo(0, height - baseHeight / 2);
+        graphics.closePath();
+        graphics.fillPath();
+        
+        // Base outline
+        graphics.lineStyle(3, color, 1);
+        graphics.strokePath();
+        
+        // Left face (darker)
+        const darkerColor = Phaser.Display.Color.IntegerToColor(color).darken(20).color;
+        graphics.fillStyle(darkerColor, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(baseWidth / 2, height - baseHeight - buildingHeight);
+        graphics.lineTo(0, height - baseHeight / 2 - buildingHeight / 2);
+        graphics.lineTo(0, height - baseHeight / 2);
+        graphics.lineTo(baseWidth / 2, height - baseHeight);
+        graphics.closePath();
+        graphics.fillPath();
+        graphics.lineStyle(3, darkerColor, 1);
+        graphics.strokePath();
+        
+        // Right face (lighter)
+        const lighterColor = Phaser.Display.Color.IntegerToColor(color).lighten(20).color;
+        graphics.fillStyle(lighterColor, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(baseWidth / 2, height - baseHeight - buildingHeight);
+        graphics.lineTo(baseWidth, height - baseHeight / 2 - buildingHeight / 2);
+        graphics.lineTo(baseWidth, height - baseHeight / 2);
+        graphics.lineTo(baseWidth / 2, height - baseHeight);
+        graphics.closePath();
+        graphics.fillPath();
+        graphics.lineStyle(3, lighterColor, 1);
+        graphics.strokePath();
+        
+        // Top face (roof)
+        const topColor = Phaser.Display.Color.IntegerToColor(color).lighten(35).color;
+        graphics.fillStyle(topColor, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(baseWidth / 2, height - baseHeight - buildingHeight);
+        graphics.lineTo(baseWidth, height - baseHeight / 2 - buildingHeight / 2);
+        graphics.lineTo(baseWidth / 2, height - baseHeight - buildingHeight - 30);
+        graphics.lineTo(0, height - baseHeight / 2 - buildingHeight / 2);
+        graphics.closePath();
+        graphics.fillPath();
+        graphics.lineStyle(3, topColor, 1);
+        graphics.strokePath();
+        
+        // Add windows (multiple rows)
+        graphics.fillStyle(0xffffff, 0.4);
+        const windowWidth = 25;
+        const windowHeight = 35;
+        const windowSpacing = 40;
+        
+        // Left side windows
+        for (let i = 0; i < 3; i++) {
+            const yPos = height - baseHeight - 60 - (i * windowSpacing);
+            graphics.fillRect(baseWidth / 2 - 60, yPos, windowWidth, windowHeight);
+        }
+        
+        // Right side windows
+        for (let i = 0; i < 3; i++) {
+            const yPos = height - baseHeight - 60 - (i * windowSpacing);
+            graphics.fillRect(baseWidth / 2 + 35, yPos, windowWidth, windowHeight);
+        }
+        
+        // Front door
+        graphics.fillStyle(0xffffff, 0.5);
+        graphics.fillRect(baseWidth / 2 - 20, height - baseHeight - 20, 40, 50);
+        
+        // Create render texture
+        const rt = this.make.renderTexture({ x: 0, y: 0, width, height }, false);
+        rt.draw(graphics, 0, 0);
+        
+        // Create HUGE text label above building
+        const text = this.make.text({
+            x: width / 2,
+            y: height - baseHeight - buildingHeight - 100,
+            text: label,
+            style: {
+                font: 'bold 48px Arial',
+                fill: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 10,
+                shadow: {
+                    offsetX: 4,
+                    offsetY: 4,
+                    color: '#000000',
+                    blur: 8,
+                    stroke: true,
+                    fill: true
+                }
+            }
+        }, false);
+        text.setOrigin(0.5, 0.5);
+        
+        // Draw text to render texture
+        rt.draw(text, 0, 0);
+        
+        // Save as texture
         rt.saveTexture(key);
         rt.destroy();
         
