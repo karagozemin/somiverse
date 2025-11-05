@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title SomniaNFT
- * @dev NFT collection for Somnia Land
+ * @dev NFT collection for SomiVerse
  */
 contract SomniaNFT is ERC721, ERC721URIStorage, Ownable {
     using Strings for uint256;

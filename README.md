@@ -1,6 +1,6 @@
-# Somnia Land - Isometric Web3 Game
+# SomiVerse - Isometric Web3 Universe
 
-Somnia blockchain üzerinde izometrik bir land oyunu. Phaser.js game engine kullanılarak geliştirilmiştir.
+Somnia blockchain üzerinde izometrik bir evren oyunu. Phaser.js game engine kullanılarak geliştirilmiştir.
 
 ## Özellikler
 
@@ -174,5 +174,5 @@ MIT
 
 ## İletişim
 
-Somnia Land Game - Web3 Gaming Experience
+SomiVerse - Web3 Universe Gaming Experience
 

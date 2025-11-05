@@ -140,11 +140,11 @@ export default class BootScene extends Phaser.Scene {
     createWaterTile(width, height) {
         const graphics = this.make.graphics({ x: 0, y: 0, add: false });
         
-        // Professional water colors (deeper blue)
-        const baseColor = 0x1e4d72;
-        const lightColor = 0x2e6d92;
+        // Somnia pink colors - çok çırtlak olmasın çok da koyu olmasın
+        const baseColor = 0x8B3A6B; // Orta ton pembe (koyu pembe)
+        const lightColor = 0xB84D8F; // Açık pembe
         
-        // Base water
+        // Base water (pembe)
         graphics.fillStyle(baseColor, 1);
         graphics.beginPath();
         graphics.moveTo(width / 2, 0);
@@ -154,7 +154,7 @@ export default class BootScene extends Phaser.Scene {
         graphics.closePath();
         graphics.fillPath();
         
-        // Water waves/ripples
+        // Water waves/ripples (pembe tonlar)
         for (let i = 0; i < 6; i++) {
             const x = Math.random() * width;
             const y = Math.random() * height;

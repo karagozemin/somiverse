@@ -1,7 +1,7 @@
 {
-  "name": "somnia-land",
+  "name": "somiverse",
   "version": "1.0.0",
-  "description": "Somnia Isometric Land Game with Web3 Integration",
+  "description": "SomiVerse - Isometric Web3 Universe Game on Somnia",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "phaser": "^3.80.1",
-    "ethers": "^6.9.0"
+    "ethers": "^6.9.0",
+    "three": "^0.160.0",
+    "postprocessing": "^6.35.0"
   },
   "devDependencies": {
     "vite": "^5.0.10"

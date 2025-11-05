@@ -1,7 +1,7 @@
 {
   "name": "somnia-contracts",
   "version": "1.0.0",
-  "description": "Smart Contracts for Somnia Land Game",
+  "description": "Smart Contracts for SomiVerse Game",
   "scripts": {
     "compile": "hardhat compile",
     "deploy": "hardhat run scripts/deploy.js --network somnia_testnet",

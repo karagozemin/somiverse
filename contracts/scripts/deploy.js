@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 async function main() {
-  console.log("Deploying Somnia Land Contracts...");
+  console.log("Deploying SomiVerse Contracts...");
 
   // Deploy Faucet
   console.log("\n1. Deploying SomniaFaucet...");

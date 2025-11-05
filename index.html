@@ -3,11 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Somnia Land - Isometric Web3 Game</title>
+    <title>SomiVerse - Isometric Web3 Universe</title>
     <link rel="stylesheet" href="/src/styles/main.css">
 </head>
 <body>
-    <div id="game-container">
+    <!-- Intro Screen -->
+    <div id="intro-screen">
+        <div id="intro-lights"></div>
+        <div id="intro-title">
+            <h1 class="somiverse-title">SomiVerse</h1>
+        </div>
+    </div>
+
+    <div id="game-container" style="display: none;">
         <div id="phaser-game"></div>
         
         <!-- Wallet & Points UI -->
@@ -30,19 +38,18 @@
             </div>
         </div>
 
-        <!-- Loading Screen -->
-        <div id="loading-screen">
+        <!-- Loading Screen - Hidden -->
+        <div id="loading-screen" style="display: none;">
             <div class="loading-content">
                 <div class="somnia-logo">SOMNIA</div>
                 <div class="loading-bar">
                     <div class="loading-progress"></div>
                 </div>
-                <p class="loading-text">Loading assets...</p>
             </div>
         </div>
     </div>
 
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/intro/IntroManager.js"></script>
 </body>
 </html>
 
