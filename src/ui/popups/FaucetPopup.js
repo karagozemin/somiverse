@@ -1,6 +1,7 @@
 import contractManager from '../../web3/contracts.js';
 import walletManager from '../../web3/wallet.js';
 import pointsManager from '../../web3/points.js';
+import toastManager from '../../utils/ToastManager.js';
 
 export default class FaucetPopup {
     constructor() {
@@ -75,11 +76,13 @@ export default class FaucetPopup {
             
             if (result.success) {
                 this.showMessage(result.message, 'success');
+                toastManager.success('100 STT tokens claimed!');
                 
                 // Show points earned
                 setTimeout(() => {
                     const reward = pointsManager.getReward('faucet');
                     this.showMessage(`🎉 +${reward} Points Earned!`, 'success');
+                    toastManager.success(`+${reward} Points!`, 2000);
                 }, 1500);
 
                 // Close popup after delay
@@ -89,6 +92,7 @@ export default class FaucetPopup {
             }
         } catch (error) {
             this.showMessage(error.message, 'error');
+            toastManager.error(error.message);
             btn.textContent = originalText;
             btn.disabled = false;
         } finally {

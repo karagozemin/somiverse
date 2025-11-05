@@ -1,4 +1,6 @@
 import { ethers } from 'ethers';
+import toastManager from '../utils/ToastManager.js';
+import pointsManager from './points.js';
 
 class WalletManager {
     constructor() {
@@ -7,17 +9,17 @@ class WalletManager {
         this.address = null;
         this.isConnected = false;
 
-        // Somnia Testnet Configuration
+        // Somnia Testnet Configuration (Shannon)
         this.somniaConfig = {
-            chainId: '0x7A31', // 31281 in hex (Somnia testnet chain ID - placeholder, update with actual)
-            chainName: 'Somnia Testnet',
+            chainId: '0xC488', // 50312 in hex (Somnia Shannon Testnet)
+            chainName: 'Somnia Shannon Testnet',
             nativeCurrency: {
                 name: 'STT',
                 symbol: 'STT',
                 decimals: 18
             },
-            rpcUrls: ['https://dream-rpc.somnia.network'], // Placeholder - update with actual RPC
-            blockExplorerUrls: ['https://somnia.network/explorer']
+            rpcUrls: ['https://dream-rpc.somnia.network'],
+            blockExplorerUrls: ['https://shannon-explorer.somnia.network/']
         };
 
         this.init();
@@ -42,11 +44,13 @@ class WalletManager {
 
     async connectWallet() {
         if (!window.ethereum) {
-            alert('Please install MetaMask or another Web3 wallet!');
+            toastManager.error('Please install MetaMask or another Web3 wallet!');
             return false;
         }
 
         try {
+            toastManager.info('Connecting to wallet...');
+            
             // Request account access
             const accounts = await window.ethereum.request({ 
                 method: 'eth_requestAccounts' 
@@ -63,11 +67,12 @@ class WalletManager {
             // Update UI
             this.updateUI();
 
+            toastManager.success('Wallet connected successfully!');
             console.log('Wallet connected:', this.address);
             return true;
         } catch (error) {
             console.error('Error connecting wallet:', error);
-            alert('Failed to connect wallet: ' + error.message);
+            toastManager.error('Failed to connect wallet: ' + error.message);
             return false;
         }
     }
@@ -105,11 +110,22 @@ class WalletManager {
     }
 
     disconnect() {
+        const previousAddress = this.address;
+        const points = pointsManager.getPoints(previousAddress);
+        
         this.provider = null;
         this.signer = null;
         this.address = null;
         this.isConnected = false;
         this.updateUI();
+        
+        toastManager.info(`Wallet disconnected. Your ${points} points are saved!`);
+        console.log('Wallet disconnected');
+    }
+    
+    async reconnect() {
+        // Helper method to reconnect with previous address
+        return this.connectWallet();
     }
 
     updateUI() {
@@ -120,6 +136,7 @@ class WalletManager {
         if (this.isConnected && this.address) {
             const shortAddress = `${this.address.substring(0, 6)}...${this.address.substring(38)}`;
             walletText.textContent = shortAddress;
+            walletBtn.title = 'Click to disconnect';
             pointsContainer.style.display = 'flex';
 
             // Load points
@@ -129,6 +146,7 @@ class WalletManager {
             });
         } else {
             walletText.textContent = 'Connect Wallet';
+            walletBtn.title = 'Click to connect wallet';
             pointsContainer.style.display = 'none';
         }
     }
@@ -149,15 +167,154 @@ class WalletManager {
 // Singleton instance
 const walletManager = new WalletManager();
 
-// Connect wallet button handler
-document.addEventListener('DOMContentLoaded', () => {
+// Wallet dropdown menu
+let walletDropdown = null;
+
+function createWalletDropdown() {
+    if (walletDropdown) {
+        walletDropdown.remove();
+    }
+
+    walletDropdown = document.createElement('div');
+    walletDropdown.id = 'wallet-dropdown';
+    walletDropdown.style.cssText = `
+        position: fixed;
+        top: 90px;
+        right: 30px;
+        min-width: 220px;
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        padding: 8px;
+        z-index: 10000;
+        animation: dropdownSlide 0.2s ease;
+    `;
+
+    const address = walletManager.getAddress();
+    const shortAddress = `${address.substring(0, 6)}...${address.substring(38)}`;
+    const points = pointsManager.getPoints(address);
+
+    walletDropdown.innerHTML = `
+        <style>
+            @keyframes dropdownSlide {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            .dropdown-item {
+                padding: 12px 16px;
+                color: white;
+                cursor: pointer;
+                border-radius: 8px;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 14px;
+            }
+            .dropdown-item:hover {
+                background: rgba(255, 255, 255, 0.1);
+            }
+            .dropdown-header {
+                padding: 12px 16px;
+                color: white;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                margin-bottom: 8px;
+            }
+            .dropdown-address {
+                font-weight: 600;
+                font-size: 15px;
+                margin-bottom: 4px;
+            }
+            .dropdown-points {
+                font-size: 13px;
+                opacity: 0.7;
+            }
+            .disconnect-item {
+                color: #ff4444;
+            }
+            .disconnect-item:hover {
+                background: rgba(255, 68, 68, 0.1);
+            }
+        </style>
+        <div class="dropdown-header">
+            <div class="dropdown-address">${shortAddress}</div>
+            <div class="dropdown-points">Points: ${points}</div>
+        </div>
+        <div class="dropdown-item disconnect-item" id="disconnect-wallet">
+            <span>🚪</span>
+            <span>Disconnect</span>
+        </div>
+    `;
+
+    document.body.appendChild(walletDropdown);
+
+    // Disconnect handler
+    document.getElementById('disconnect-wallet').addEventListener('click', (e) => {
+        e.stopPropagation();
+        walletManager.disconnect();
+        closeWalletDropdown();
+    });
+
+    // Close on outside click
+    setTimeout(() => {
+        document.addEventListener('click', handleOutsideClick);
+    }, 10);
+}
+
+function closeWalletDropdown() {
+    if (walletDropdown) {
+        walletDropdown.remove();
+        walletDropdown = null;
+        document.removeEventListener('click', handleOutsideClick);
+    }
+}
+
+function handleOutsideClick(e) {
+    if (walletDropdown && !walletDropdown.contains(e.target)) {
+        closeWalletDropdown();
+    }
+}
+
+// Connect/Disconnect wallet button handler
+function initWalletButton() {
     const connectBtn = document.getElementById('connect-wallet');
     if (connectBtn) {
-        connectBtn.addEventListener('click', () => {
-            walletManager.connectWallet();
+        connectBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            if (walletManager.isConnected) {
+                // Toggle dropdown
+                if (walletDropdown) {
+                    closeWalletDropdown();
+                } else {
+                    createWalletDropdown();
+                }
+            } else {
+                // Connect
+                walletManager.connectWallet();
+            }
         });
+        console.log('Wallet button initialized');
+    } else {
+        console.warn('Connect wallet button not found, retrying...');
+        setTimeout(initWalletButton, 100);
     }
-});
+}
+
+// Try to init immediately and also on DOMContentLoaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWalletButton);
+} else {
+    initWalletButton();
+}
 
 export default walletManager;
 

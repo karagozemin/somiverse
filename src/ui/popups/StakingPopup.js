@@ -1,6 +1,7 @@
 import contractManager from '../../web3/contracts.js';
 import walletManager from '../../web3/wallet.js';
 import pointsManager from '../../web3/points.js';
+import toastManager from '../../utils/ToastManager.js';
 
 export default class StakingPopup {
     constructor() {
@@ -212,10 +213,12 @@ export default class StakingPopup {
             
             if (result.success) {
                 this.showMessage(result.message, 'success');
+                toastManager.success(`Staked ${amount} STT successfully!`);
                 
                 setTimeout(() => {
                     const reward = pointsManager.getReward('staking');
                     this.showMessage(`🎉 +${reward} Points Earned!`, 'success');
+                    toastManager.success(`+${reward} Points!`, 2000);
                 }, 1500);
 
                 setTimeout(() => {
@@ -255,6 +258,7 @@ export default class StakingPopup {
             
             if (result.success) {
                 this.showMessage(result.message, 'success');
+                toastManager.success(`Unstaked ${amount} STT successfully!`);
                 setTimeout(() => {
                     this.close();
                 }, 2000);

@@ -2,6 +2,9 @@ import Phaser from 'phaser';
 import BootScene from './scenes/BootScene.js';
 import MainScene from './scenes/MainScene.js';
 import UIScene from './scenes/UIScene.js';
+import './utils/ToastManager.js';
+import './utils/SettingsManager.js';
+import './web3/wallet.js';
 
 // Game configuration
 const config = {

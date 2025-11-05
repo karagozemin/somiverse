@@ -16,9 +16,9 @@ module.exports = {
       chainId: 1337
     },
     somnia_testnet: {
-      url: "https://dream-rpc.somnia.network", // Update with actual RPC
-      accounts: [], // Add your private key here for deployment
-      chainId: 31281 // Update with actual Somnia testnet chain ID
+      url: "https://dream-rpc.somnia.network",
+      accounts: [], // Add your private key here: ["0xYOUR_PRIVATE_KEY"]
+      chainId: 50312 // Somnia Shannon Testnet
     }
   },
   paths: {

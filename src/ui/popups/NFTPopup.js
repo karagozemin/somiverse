@@ -1,6 +1,7 @@
 import contractManager from '../../web3/contracts.js';
 import walletManager from '../../web3/wallet.js';
 import pointsManager from '../../web3/points.js';
+import toastManager from '../../utils/ToastManager.js';
 
 export default class NFTPopup {
     constructor() {
@@ -116,10 +117,12 @@ export default class NFTPopup {
             
             if (result.success) {
                 this.showMessage(result.message, 'success');
+                toastManager.success(`NFT #${this.selectedNFT} minted successfully!`);
                 
                 setTimeout(() => {
                     const reward = pointsManager.getReward('nft');
                     this.showMessage(`🎉 +${reward} Points Earned!`, 'success');
+                    toastManager.success(`+${reward} Points!`, 2000);
                 }, 1500);
 
                 setTimeout(() => {

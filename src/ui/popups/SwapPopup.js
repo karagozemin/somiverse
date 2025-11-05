@@ -1,6 +1,7 @@
 import contractManager from '../../web3/contracts.js';
 import walletManager from '../../web3/wallet.js';
 import pointsManager from '../../web3/points.js';
+import toastManager from '../../utils/ToastManager.js';
 
 export default class SwapPopup {
     constructor() {
@@ -166,10 +167,12 @@ export default class SwapPopup {
             
             if (result.success) {
                 this.showMessage(result.message, 'success');
+                toastManager.success(`Swapped ${amount} ${fromToken} → ${toToken}`);
                 
                 setTimeout(() => {
                     const reward = pointsManager.getReward('swap');
                     this.showMessage(`🎉 +${reward} Points Earned!`, 'success');
+                    toastManager.success(`+${reward} Points!`, 2000);
                 }, 1500);
 
                 setTimeout(() => {
