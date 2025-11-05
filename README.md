@@ -1,5 +1,7 @@
 # SomiVerse - Isometric Web3 Universe
 
+![SomiVerse Logo](./src/assets/logo.jpeg)
+
 Somnia blockchain üzerinde izometrik bir evren oyunu. Phaser.js game engine kullanılarak geliştirilmiştir.
 
 ## Özellikler
