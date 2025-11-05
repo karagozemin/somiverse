@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Somnia Land - Isometric Web3 Game</title>
+    <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="phaser-game"></div>
+        
+        <!-- Wallet & Points UI -->
+        <div id="top-ui">
+            <div id="wallet-container">
+                <button id="connect-wallet" class="glass-button">
+                    <span id="wallet-text">Connect Wallet</span>
+                </button>
+            </div>
+            <div id="points-container" class="glass-panel" style="display: none;">
+                <span class="points-label">Points:</span>
+                <span id="points-value">0</span>
+            </div>
+        </div>
+
+        <!-- Popup Container -->
+        <div id="popup-overlay" class="popup-overlay" style="display: none;">
+            <div id="popup-content" class="popup-content glass-panel">
+                <!-- Dynamic popup content will be injected here -->
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="loading-content">
+                <div class="somnia-logo">SOMNIA</div>
+                <div class="loading-bar">
+                    <div class="loading-progress"></div>
+                </div>
+                <p class="loading-text">Loading assets...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
+
