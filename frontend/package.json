@@ -15,7 +15,8 @@
     "postprocessing": "^6.35.0"
   },
   "devDependencies": {
-    "vite": "^5.0.10"
+    "vite": "^5.0.10",
+    "patch-package": "^8.0.0"
   }
 }
 

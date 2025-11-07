@@ -8,22 +8,23 @@ export default class Building {
         this.isNearby = false;
         this.popupOpened = false; // Track if popup is already open
 
-        // Calculate offset
+        // Calculate offset - TAM EKRAN için dinamik
         const offsetX = this.scene.cameras.main.width / 2;
-        const offsetY = this.scene.cameras.main.height / 2 - 200;
+        const offsetY = this.scene.cameras.main.height / 2;
 
         // Create simple sprite marker
         const pos = this.scene.cartesianToIsometric(gridX, gridY);
         this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY, texture);
         this.sprite.setOrigin(0.5, 0.5);
-        this.sprite.setScale(1.0);
+        this.sprite.setScale(0.35); // Daha da küçültüldü: 0.5 → 0.35
+        this.sprite.setBlendMode(Phaser.BlendModes.NORMAL); // Şeffaflık için blend mode
         
         // Higher depth to appear above tiles
         const depth = gridY * 100 + gridX + 1000;
         this.sprite.setDepth(depth);
 
         // Simple label above marker
-        this.hintText = this.scene.add.text(pos.x + offsetX, pos.y + offsetY - 50, this.name, {
+        this.hintText = this.scene.add.text(pos.x + offsetX, pos.y + offsetY - 80, this.name, {
             font: 'bold 14px Arial',
             fill: '#ffffff',
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -34,16 +35,7 @@ export default class Building {
         this.hintText.setDepth(depth + 10);
         this.hintText.setVisible(true);
 
-        // Add pulsing animation to building
-        this.scene.tweens.add({
-            targets: this.sprite,
-            scaleX: 1.05,
-            scaleY: 1.05,
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        // Animasyon kaldırıldı - Custom görsel hareketsiz duracak
 
         // Simple glow effect
         this.createGlowEffect(pos.x + offsetX, pos.y + offsetY);
@@ -80,20 +72,20 @@ export default class Building {
         
         this.isNearby = isNear;
         
-        // Scale up when near
+        // Scale up when near - 0.35 bazlı (custom görsel için)
         if (isNear) {
             this.scene.tweens.add({
                 targets: this.sprite,
-                scaleX: 1.3,
-                scaleY: 1.3,
+                scaleX: 0.40, // Hafif büyüme: 0.35 → 0.40
+                scaleY: 0.40,
                 duration: 200,
                 ease: 'Back.easeOut'
             });
         } else {
             this.scene.tweens.add({
                 targets: this.sprite,
-                scaleX: 1.0,
-                scaleY: 1.0,
+                scaleX: 0.35, // Normal boyut
+                scaleY: 0.35,
                 duration: 200,
                 ease: 'Back.easeOut'
             });
