@@ -6,7 +6,8 @@ import toastManager from '../../utils/ToastManager.js';
 export default class SwapPopup {
     constructor() {
         this.isSwapping = false;
-        this.tokens = ['STT', 'USDT', 'USDC', 'DAI'];
+        // Only tokens that are actually deployed on Somnia testnet
+        this.tokens = ['STT', 'USDT'];
     }
 
     render(title) {
