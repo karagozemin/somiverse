@@ -27,7 +27,13 @@ export default class SwapPopup {
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">From</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label class="form-label" style="margin: 0;">From</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 12px; opacity: 0.7;">Balance: <span id="from-balance">-</span></span>
+                            <button id="max-btn" class="max-button" style="font-size: 11px; padding: 4px 8px; background: rgba(255, 0, 128, 0.2); border: 1px solid rgba(255, 0, 128, 0.4); border-radius: 6px; color: #FF0080; cursor: pointer; font-weight: 600;">MAX</button>
+                        </div>
+                    </div>
                     <div style="display: flex; gap: 10px;">
                         <input type="number" class="form-input" id="from-amount" placeholder="0.0" style="flex: 2;" value="1">
                         <select class="form-select" id="from-token" style="flex: 1;">
@@ -95,6 +101,10 @@ export default class SwapPopup {
             this.executeSwap();
         });
 
+        document.getElementById('max-btn')?.addEventListener('click', () => {
+            this.setMaxAmount();
+        });
+
         // Auto-update quote when amount changes (with debounce)
         document.getElementById('from-amount')?.addEventListener('input', () => {
             this.autoGetQuote();
@@ -102,6 +112,7 @@ export default class SwapPopup {
 
         // Auto-update quote when tokens change
         document.getElementById('from-token')?.addEventListener('change', () => {
+            this.updateBalance();
             this.autoGetQuote();
         });
 
@@ -109,7 +120,8 @@ export default class SwapPopup {
             this.autoGetQuote();
         });
 
-        // Initial quote
+        // Initial balance and quote
+        this.updateBalance();
         this.autoGetQuote();
     }
 
@@ -253,6 +265,52 @@ export default class SwapPopup {
         } finally {
             this.isSwapping = false;
         }
+    }
+
+    async updateBalance() {
+        if (!walletManager.isConnected) {
+            document.getElementById('from-balance').textContent = '-';
+            return;
+        }
+
+        const fromToken = document.getElementById('from-token').value;
+        const balanceEl = document.getElementById('from-balance');
+        
+        if (!balanceEl) return;
+
+        try {
+            balanceEl.textContent = 'Loading...';
+            const balance = await contractManager.getTokenBalance(fromToken);
+            balanceEl.textContent = `${parseFloat(balance).toFixed(4)} ${fromToken}`;
+            this.currentBalance = balance;
+        } catch (error) {
+            console.error('Failed to get balance:', error);
+            balanceEl.textContent = 'Error';
+            this.currentBalance = '0';
+        }
+    }
+
+    setMaxAmount() {
+        if (!this.currentBalance || parseFloat(this.currentBalance) <= 0) {
+            toastManager.error('No balance available');
+            return;
+        }
+
+        const fromToken = document.getElementById('from-token').value;
+        let maxAmount = parseFloat(this.currentBalance);
+
+        // For native STT, reserve some for gas
+        if (fromToken === 'STT' || fromToken === 'WSTT') {
+            maxAmount = Math.max(0, maxAmount - 0.01); // Reserve 0.01 STT for gas
+        }
+
+        if (maxAmount <= 0) {
+            toastManager.error('Insufficient balance (need to reserve gas)');
+            return;
+        }
+
+        document.getElementById('from-amount').value = maxAmount.toFixed(6);
+        this.autoGetQuote();
     }
 
     showMessage(message, type) {

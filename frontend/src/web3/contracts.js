@@ -468,6 +468,43 @@ class ContractManager {
         };
     }
 
+    // Get token balance for user
+    async getTokenBalance(token) {
+        try {
+            if (!walletManager.isConnected) {
+                return '0';
+            }
+
+            const userAddress = walletManager.getAddress();
+            
+            // For native STT
+            if (token === 'STT' || token === 'WSTT') {
+                const provider = walletManager.getProvider();
+                const balance = await provider.getBalance(userAddress);
+                return ethers.formatUnits(balance, 18);
+            }
+            
+            // For ERC20 tokens
+            const tokenAddress = this.tokens[token];
+            if (!tokenAddress) {
+                return '0';
+            }
+
+            const provider = walletManager.getProvider();
+            const tokenContract = new ethers.Contract(
+                tokenAddress,
+                this.abis.erc20,
+                provider
+            );
+
+            const balance = await tokenContract.balanceOf(userAddress);
+            return ethers.formatUnits(balance, 18);
+        } catch (error) {
+            console.error('Error getting balance:', error);
+            return '0';
+        }
+    }
+
     // Utility function to simulate transaction
     async simulateTransaction() {
         return new Promise(resolve => {
