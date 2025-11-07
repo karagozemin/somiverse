@@ -29,16 +29,19 @@ export default class SwapPopup {
                 <div class="form-group">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <label class="form-label" style="margin: 0;">From</label>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 12px; opacity: 0.7;">Balance: <span id="from-balance">-</span></span>
-                            <button id="max-btn" class="max-button" style="font-size: 11px; padding: 4px 8px; background: rgba(255, 0, 128, 0.2); border: 1px solid rgba(255, 0, 128, 0.4); border-radius: 6px; color: #FF0080; cursor: pointer; font-weight: 600;">MAX</button>
-                        </div>
+                        <span style="font-size: 12px; opacity: 0.7;">Balance: <span id="from-balance">-</span></span>
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <input type="number" class="form-input" id="from-amount" placeholder="0.0" style="flex: 2;" value="1">
                         <select class="form-select" id="from-token" style="flex: 1;">
                             ${this.tokens.map(token => `<option value="${token}">${token}</option>`).join('')}
                         </select>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <button class="percentage-btn" data-percentage="25" style="flex: 1; padding: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">25%</button>
+                        <button class="percentage-btn" data-percentage="50" style="flex: 1; padding: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">50%</button>
+                        <button class="percentage-btn" data-percentage="75" style="flex: 1; padding: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">75%</button>
+                        <button class="percentage-btn" data-percentage="100" style="flex: 1; padding: 6px; background: rgba(255, 0, 128, 0.2); border: 1px solid rgba(255, 0, 128, 0.4); border-radius: 6px; color: #FF0080; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">MAX</button>
                     </div>
                 </div>
 
@@ -101,8 +104,27 @@ export default class SwapPopup {
             this.executeSwap();
         });
 
-        document.getElementById('max-btn')?.addEventListener('click', () => {
-            this.setMaxAmount();
+        // Percentage buttons event listeners
+        document.querySelectorAll('.percentage-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const percentage = parseInt(btn.getAttribute('data-percentage'));
+                this.setAmountByPercentage(percentage);
+            });
+            
+            // Hover effect
+            btn.addEventListener('mouseenter', () => {
+                btn.style.background = 'rgba(255, 0, 128, 0.15)';
+                btn.style.borderColor = 'rgba(255, 0, 128, 0.5)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                if (btn.getAttribute('data-percentage') === '100') {
+                    btn.style.background = 'rgba(255, 0, 128, 0.2)';
+                    btn.style.borderColor = 'rgba(255, 0, 128, 0.4)';
+                } else {
+                    btn.style.background = 'rgba(255, 255, 255, 0.05)';
+                    btn.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }
+            });
         });
 
         // Auto-update quote when amount changes (with debounce)
@@ -290,26 +312,34 @@ export default class SwapPopup {
         }
     }
 
-    setMaxAmount() {
+    setAmountByPercentage(percentage) {
         if (!this.currentBalance || parseFloat(this.currentBalance) <= 0) {
-            toastManager.error('No balance available');
+            toastManager.error('Bakiye yok');
             return;
         }
 
         const fromToken = document.getElementById('from-token').value;
-        let maxAmount = parseFloat(this.currentBalance);
+        let availableBalance = parseFloat(this.currentBalance);
 
-        // For native STT, reserve some for gas
+        // STT için gas için reserve
         if (fromToken === 'STT' || fromToken === 'WSTT') {
-            maxAmount = Math.max(0, maxAmount - 0.01); // Reserve 0.01 STT for gas
+            availableBalance = Math.max(0, availableBalance - 0.01); // 0.01 STT gas için ayır
         }
 
-        if (maxAmount <= 0) {
-            toastManager.error('Insufficient balance (need to reserve gas)');
+        if (availableBalance <= 0) {
+            toastManager.error('Yetersiz bakiye (gas için rezerv gerekli)');
             return;
         }
 
-        document.getElementById('from-amount').value = maxAmount.toFixed(6);
+        // Yüzdeyi hesapla
+        const amount = (availableBalance * percentage) / 100;
+        
+        if (amount <= 0) {
+            toastManager.error('Miktar çok düşük');
+            return;
+        }
+
+        document.getElementById('from-amount').value = amount.toFixed(6);
         this.autoGetQuote();
     }
 
