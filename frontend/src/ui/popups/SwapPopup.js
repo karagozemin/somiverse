@@ -6,6 +6,8 @@ import toastManager from '../../utils/ToastManager.js';
 export default class SwapPopup {
     constructor() {
         this.isSwapping = false;
+        this.quoteTimeout = null;
+        this.isGettingQuote = false;
         // Only tokens that are actually deployed on Somnia testnet
         this.tokens = ['STT', 'USDT'];
     }
@@ -70,11 +72,7 @@ export default class SwapPopup {
                     <span class="info-value" style="color: #FF0080; font-weight: 700;">+${reward}</span>
                 </div>
 
-                <button class="action-button" id="get-quote-btn">
-                    Get Quote
-                </button>
-
-                <button class="action-button" id="swap-btn" style="display: none;">
+                <button class="action-button" id="swap-btn" disabled style="opacity: 0.5;">
                     Swap Tokens
                 </button>
 
@@ -90,22 +88,47 @@ export default class SwapPopup {
 
         document.getElementById('swap-direction')?.addEventListener('click', () => {
             this.swapDirection();
-        });
-
-        document.getElementById('get-quote-btn')?.addEventListener('click', () => {
-            this.getQuote();
+            this.autoGetQuote(); // Auto quote after swap direction
         });
 
         document.getElementById('swap-btn')?.addEventListener('click', () => {
             this.executeSwap();
         });
 
-        // Auto-update quote when amount changes
+        // Auto-update quote when amount changes (with debounce)
         document.getElementById('from-amount')?.addEventListener('input', () => {
-            document.getElementById('quote-info').style.display = 'none';
-            document.getElementById('swap-btn').style.display = 'none';
-            document.getElementById('get-quote-btn').style.display = 'block';
+            this.autoGetQuote();
         });
+
+        // Auto-update quote when tokens change
+        document.getElementById('from-token')?.addEventListener('change', () => {
+            this.autoGetQuote();
+        });
+
+        document.getElementById('to-token')?.addEventListener('change', () => {
+            this.autoGetQuote();
+        });
+
+        // Initial quote
+        this.autoGetQuote();
+    }
+
+    autoGetQuote() {
+        // Clear previous timeout
+        if (this.quoteTimeout) {
+            clearTimeout(this.quoteTimeout);
+        }
+
+        // Show loading state in to-amount
+        const toAmountInput = document.getElementById('to-amount');
+        if (toAmountInput) {
+            toAmountInput.value = 'Loading...';
+        }
+
+        // Debounce: wait 500ms after user stops typing
+        this.quoteTimeout = setTimeout(() => {
+            this.getQuote(true); // true = silent mode (no error messages)
+        }, 500);
     }
 
     swapDirection() {
@@ -116,33 +139,65 @@ export default class SwapPopup {
         toToken.value = temp;
     }
 
-    async getQuote() {
+    async getQuote(silent = false) {
+        if (this.isGettingQuote) return;
+
         const fromToken = document.getElementById('from-token').value;
         const toToken = document.getElementById('to-token').value;
         const amount = document.getElementById('from-amount').value;
+        const toAmountInput = document.getElementById('to-amount');
+        const swapBtn = document.getElementById('swap-btn');
 
+        // Validation
         if (!amount || parseFloat(amount) <= 0) {
-            this.showMessage('Please enter a valid amount', 'error');
+            if (toAmountInput) toAmountInput.value = '0.0';
+            if (swapBtn) swapBtn.disabled = true;
+            if (!silent) this.showMessage('Please enter a valid amount', 'error');
             return;
         }
 
         if (fromToken === toToken) {
-            this.showMessage('Please select different tokens', 'error');
+            if (toAmountInput) toAmountInput.value = '0.0';
+            if (swapBtn) swapBtn.disabled = true;
+            if (!silent) this.showMessage('Please select different tokens', 'error');
             return;
         }
+
+        this.isGettingQuote = true;
 
         try {
             const quote = await contractManager.getSwapQuote(fromToken, toToken, amount);
             
-            document.getElementById('to-amount').value = quote.outputAmount;
+            // Update UI with quote
+            if (toAmountInput) {
+                toAmountInput.value = quote.outputAmount;
+            }
+            
             document.getElementById('swap-rate').textContent = `1 ${fromToken} = ${quote.rate} ${toToken}`;
             document.getElementById('price-impact').textContent = quote.priceImpact;
             
+            // Show quote info and enable swap button
             document.getElementById('quote-info').style.display = 'block';
-            document.getElementById('get-quote-btn').style.display = 'none';
-            document.getElementById('swap-btn').style.display = 'block';
+            if (swapBtn) {
+                swapBtn.disabled = false;
+                swapBtn.style.opacity = '1';
+            }
         } catch (error) {
-            this.showMessage('Failed to get quote', 'error');
+            // On error, show 0.0 and disable swap
+            if (toAmountInput) {
+                toAmountInput.value = '0.0';
+            }
+            if (swapBtn) {
+                swapBtn.disabled = true;
+                swapBtn.style.opacity = '0.5';
+            }
+            
+            if (!silent) {
+                this.showMessage('Failed to get quote: ' + error.message, 'error');
+            }
+            console.error('Quote error:', error);
+        } finally {
+            this.isGettingQuote = false;
         }
     }
 
