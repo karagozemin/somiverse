@@ -39,6 +39,40 @@ class WalletManager {
             window.ethereum.on('chainChanged', () => {
                 window.location.reload();
             });
+
+            // Auto-reconnect if previously connected
+            this.autoReconnect();
+        }
+    }
+
+    async autoReconnect() {
+        const wasConnected = localStorage.getItem('walletConnected');
+        if (wasConnected === 'true') {
+            try {
+                // Check if already has permission
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_accounts' 
+                });
+                
+                if (accounts.length > 0) {
+                    console.log('Auto-reconnecting wallet...');
+                    this.provider = new ethers.BrowserProvider(window.ethereum);
+                    this.signer = await this.provider.getSigner();
+                    this.address = accounts[0];
+                    this.isConnected = true;
+                    
+                    // Try to switch to Somnia network silently
+                    await this.switchToSomniaNetwork();
+                    
+                    // Update UI
+                    this.updateUI();
+                    
+                    console.log('Wallet auto-reconnected:', this.address);
+                }
+            } catch (error) {
+                console.error('Auto-reconnect failed:', error);
+                localStorage.removeItem('walletConnected');
+            }
         }
     }
 
@@ -66,6 +100,9 @@ class WalletManager {
 
             // Update UI
             this.updateUI();
+
+            // Save connection state to localStorage
+            localStorage.setItem('walletConnected', 'true');
 
             toastManager.success('Wallet connected successfully!');
             console.log('Wallet connected:', this.address);
@@ -117,6 +154,10 @@ class WalletManager {
         this.signer = null;
         this.address = null;
         this.isConnected = false;
+        
+        // Remove connection state from localStorage
+        localStorage.removeItem('walletConnected');
+        
         this.updateUI();
         
         toastManager.info(`Wallet disconnected. Your ${points} points are saved!`);

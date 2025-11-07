@@ -175,6 +175,8 @@ class SettingsManager {
                 }
                 .setting-select option {
                     background: #1a1a1a;
+                    color: white;
+                    padding: 10px;
                 }
                 #reset-settings:hover {
                     background: rgba(255, 255, 255, 0.15);
