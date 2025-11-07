@@ -11,20 +11,33 @@ export default class MainScene extends Phaser.Scene {
         // Isometric grid settings (updated to match new tile size)
         this.tileWidth = 130;
         this.tileHeight = 66;
-        this.gridWidth = 80;  // Çok daha geniş! (20'den 80'e)
-        this.gridHeight = 80; // Çok daha geniş! (20'den 80'e)
+        this.gridWidth = 25;  // Orta boyut (20'den 25'e)
+        this.gridHeight = 25; // Orta boyut (20'den 25'e)
 
         // BACKGROUND IMAGE - Tüm ekranı kapsayan cyberpunk land
-        const worldWidth = 10000;  // Çok geniş dünya
-        const worldHeight = 10000; // Çok geniş dünya
+        const worldWidth = 4000;  // Küçük boyut dünya (5000'den 4000'e)
+        const worldHeight = 4000; // Küçük boyut dünya (5000'den 4000'e)
         
-        // Background ekle - Tiling (tekrarlayan) şekilde
-        if (this.textures.exists('somi-land')) {
-            this.background = this.add.tileSprite(0, 0, worldWidth, worldHeight, 'somi-land');
-            this.background.setOrigin(0.5, 0.5);
-            this.background.setDepth(-100); // En arkada
-            this.background.setAlpha(1); // Tam görünür
-            this.background.setScrollFactor(0.5); // Parallax efekti
+        // Background kaldırıldı - Sadece grid alanı görünsün, geri kalan siyah olacak
+        // if (this.textures.exists('somi-land')) {
+        //     this.background = this.add.tileSprite(0, 0, worldWidth, worldHeight, 'somi-land');
+        //     this.background.setOrigin(0.5, 0.5);
+        //     this.background.setDepth(-100); // En arkada
+        //     this.background.setAlpha(1); // Tam görünür
+        //     this.background.setScrollFactor(0.5); // Parallax efekti
+        // }
+
+        // 🎯 CUSTOM GROUND - Prosedürel haritanın ÜSTÜNde overlay
+        if (this.textures.exists('custom-ground')) {
+            this.customGround = this.add.image(0, 0, 'custom-ground');
+            this.customGround.setOrigin(0.5, 0.5);
+            this.customGround.setDepth(10); // Prosedürel tile'ların üstünde, player'ın altında
+            this.customGround.setScale(2.8); // Oyun alanına sığacak boyut
+            this.customGround.setAlpha(0.6); // Yarı şeffaf - alttaki tile'lar da gözüksün
+            this.customGround.setBlendMode(Phaser.BlendModes.ADD); // Neon glow efekti
+            this.customGround.setScrollFactor(1); // Kamera ile hareket eder
+            
+            console.log('✅ Custom Ground overlay aktif!');
         }
 
         // Camera setup - ÇOK GENİŞ ALAN
@@ -38,8 +51,8 @@ export default class MainScene extends Phaser.Scene {
         this.buildings = [];
         this.createBuildings();
 
-        // Create player at center (ortada başlasın - 80x80 grid'in ortası)
-        this.player = new Player(this, 40, 40);
+        // Create player at center (ortada başlasın - 25x25 grid'in ortası)
+        this.player = new Player(this, 12, 12);
         
         // Camera follows player
         this.cameras.main.startFollow(this.player.sprite, true, 0.1, 0.1);
@@ -59,43 +72,164 @@ export default class MainScene extends Phaser.Scene {
         this.registry.set('mainScene', this);
     }
 
+    // 🎨 Cyberpunk land tasarımı - Yol sistemini belirle
+    isNeonRoad(x, y) {
+        // Ana çarpı yolları (merkez 12,12)
+        const centerX = 12;
+        const centerY = 12;
+        
+        // Yatay yollar (her 8 tile'da bir)
+        if (y % 8 === 0) return true;
+        
+        // Dikey yollar (her 8 tile'da bir)
+        if (x % 8 === 0) return true;
+        
+        // Merkez çember yolu
+        const distToCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+        if (distToCenter > 8 && distToCenter < 10) return true;
+        
+        return false;
+    }
+    
+    // 🎨 Kristal pozisyonları
+    isCrystal(x, y) {
+        // Rastgele kristaller (düşük oran)
+        const hash = (x * 73856093) ^ (y * 19349663);
+        return (hash % 100) < 3; // %3 şans
+    }
+
+    // 🎨 Helper: Gerçek görsel varsa onu kullan, yoksa prosedürel tile kullan
+    getActualTileKey(tileType) {
+        // Mapping: prosedürel tile → gerçek görsel
+        const tileMapping = {
+            'tile-grass': 'tile-grass-img',
+            'tile-water': 'tile-water-img',
+            'tile-path': 'tile-path-img',
+            'tile-tree': 'tile-tree-img',
+            'tile-stone': 'tile-stone-img'
+        };
+        
+        const imageKey = tileMapping[tileType];
+        
+        // Eğer gerçek görsel yüklendiyse onu kullan
+        if (imageKey && this.textures.exists(imageKey)) {
+            return imageKey;
+        }
+        
+        // Yoksa prosedürel tile kullan (fallback)
+        return tileType;
+    }
+
+    // 🎨 Basit tile oluştur (graphics ile, texture yok)
+    createGroundTile(x, y) {
+        const graphics = this.add.graphics();
+        
+        // Koyu mor/siyah izometrik tile
+        graphics.fillStyle(0x1a0b2e, 1);
+        graphics.beginPath();
+        graphics.moveTo(x, y - 33);
+        graphics.lineTo(x + 65, y);
+        graphics.lineTo(x, y + 33);
+        graphics.lineTo(x - 65, y);
+        graphics.closePath();
+        graphics.fillPath();
+        
+        // Hafif kenarlık
+        graphics.lineStyle(1, 0x2d1b4e, 0.3);
+        graphics.strokePath();
+        
+        return graphics;
+    }
+    
+    // 💜 Neon yol tile
+    createNeonRoad(x, y) {
+        const graphics = this.add.graphics();
+        
+        // Mor yol
+        graphics.fillStyle(0x8B5CF6, 1);
+        graphics.beginPath();
+        graphics.moveTo(x, y - 33);
+        graphics.lineTo(x + 65, y);
+        graphics.lineTo(x, y + 33);
+        graphics.lineTo(x - 65, y);
+        graphics.closePath();
+        graphics.fillPath();
+        
+        // Pembe kenarlık
+        graphics.lineStyle(2, 0xFF0080, 1);
+        graphics.strokePath();
+        
+        return graphics;
+    }
+    
+    // 💎 Kristal
+    createCrystal(x, y, depth) {
+        const graphics = this.add.graphics();
+        
+        // Cyan kristal
+        graphics.fillStyle(0x00D4FF, 1);
+        graphics.beginPath();
+        graphics.moveTo(x, y - 20);
+        graphics.lineTo(x + 10, y);
+        graphics.lineTo(x, y + 5);
+        graphics.lineTo(x - 10, y);
+        graphics.closePath();
+        graphics.fillPath();
+        
+        // Parlak kenarlık
+        graphics.lineStyle(2, 0x00FFFF, 1);
+        graphics.strokePath();
+        
+        graphics.setDepth(depth);
+        
+        // Parıldama
+        this.tweens.add({
+            targets: graphics,
+            alpha: 0.5,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        return graphics;
+    }
+
     createIsometricWorld() {
         this.tiles = [];
+        
+        console.log('🎨 Cyberpunk land oluşturuluyor...');
         
         // Calculate offset to center the map - TAM EKRAN için dinamik
         const offsetX = this.cameras.main.width / 2;
         const offsetY = this.cameras.main.height / 2;
         
-        // Create a professional map with grass, water, paths, trees, and stones
+        // 🎨 CYBERPUNK LAND - Yeni tasarım
         for (let y = 0; y < this.gridHeight; y++) {
             this.tiles[y] = [];
             for (let x = 0; x < this.gridWidth; x++) {
-                let tileType = 'tile-grass';
-                
-                // Water around edges
-                if (x === 0 || x === this.gridWidth - 1 || y === 0 || y === this.gridHeight - 1) {
-                    tileType = 'tile-water';
-                }
-                // Paths in cross pattern (stone path)
-                else if (x === 10 || y === 10) {
-                    tileType = 'tile-path';
-                }
-                // Random decorative elements on grass
-                else {
-                    const rand = Math.random();
-                    if (rand < 0.08) { // 8% chance for tree
-                        tileType = 'tile-tree';
-                    } else if (rand < 0.12) { // 4% chance for stone
-                        tileType = 'tile-stone';
-                    }
-                }
-                
                 const isoPos = this.cartesianToIsometric(x, y);
-                const tile = this.add.image(isoPos.x + offsetX, isoPos.y + offsetY, tileType);
-                tile.setOrigin(0.5, 0.5);
+                let tile;
+                let tileType = 'ground';
+                
+                // 💜 NEON YOL MU?
+                if (this.isNeonRoad(x, y)) {
+                    tile = this.createNeonRoad(isoPos.x + offsetX, isoPos.y + offsetY);
+                    tileType = 'neon-road';
+                }
+                // 💎 KRİSTAL Mİ?
+                else if (this.isCrystal(x, y)) {
+                    tile = this.createGroundTile(isoPos.x + offsetX, isoPos.y + offsetY);
+                    this.createCrystal(isoPos.x + offsetX, isoPos.y + offsetY - 30, y * 100 + x + 10);
+                    tileType = 'crystal';
+                }
+                // 🟣 NORMAL ZEMİN
+                else {
+                    tile = this.createGroundTile(isoPos.x + offsetX, isoPos.y + offsetY);
+                }
+                
+                // Depth ayarla (graphics için)
                 tile.setDepth(y * 100 + x);
-                tile.setTint(0xffffff);
-                tile.setAlpha(1);
                 
                 this.tiles[y][x] = {
                     sprite: tile,
@@ -108,16 +242,20 @@ export default class MainScene extends Phaser.Scene {
     }
 
     createBuildings() {
-        // 3 ANA BİNA - Geniş alanda dağıtıldı (oyuncu 40,40'da başlıyor)
+        // 3 ANA BİNA - Orta boyut alanda dağıtıldı (oyuncu 12,12'de başlıyor)
         
         // 💱 SWAP BİNASI - Sol üst bölge
-        this.buildings.push(new Building(this, 25, 25, 'building-swap', 'Swap City', 'swap'));
+        // Gerçek görsel varsa kullan: building-swap-img, yoksa: building-swap
+        const swapTexture = this.textures.exists('building-swap-img') ? 'building-swap-img' : 'building-swap';
+        this.buildings.push(new Building(this, 6, 6, swapTexture, 'Swap City', 'swap'));
         
-        // 😂 MEME BİNASI - Sağ üst bölge (NFT yerine)
-        this.buildings.push(new Building(this, 55, 25, 'building-nft', 'Meme Gallery', 'nft'));
+        // 😂 MEME BİNASI - Sağ üst bölge
+        const memeTexture = this.textures.exists('building-meme-img') ? 'building-meme-img' : 'building-nft';
+        this.buildings.push(new Building(this, 18, 6, memeTexture, 'Meme Gallery', 'nft'));
         
-        // 💰 LENDING BİNASI - Alt ortada (Faucet yerine)
-        this.buildings.push(new Building(this, 40, 55, 'building-faucet', 'Lending Tower', 'faucet'));
+        // 💰 LENDING BİNASI - Alt ortada
+        const lendingTexture = this.textures.exists('building-lending-img') ? 'building-lending-img' : 'building-faucet';
+        this.buildings.push(new Building(this, 12, 18, lendingTexture, 'Lending Tower', 'faucet'));
         
         // NOT: Staking binasını kaldırdık, 3 bina olacak dediklerinde
         // İsterseniz tekrar ekleyebiliriz

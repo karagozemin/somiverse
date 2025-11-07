@@ -12,9 +12,40 @@ export default class BootScene extends Phaser.Scene {
         // Load background image (cyberpunk land)
         // Public klasöründen yükle (daha hızlı ve mantıklı!)
         this.load.image('somi-land', '/backgrounds/somi-land.png');
+        
+        // Custom ground - İzometrik neon grid (karakterin yürüdüğü alan)
+        this.load.image('custom-ground', '/backgrounds/ground.png');
 
-        // Here we'll load all assets
-        // For now, we'll create procedural graphics
+        // 🎨 TILE GÖRSELLERİ YÜKLEME SİSTEMİ
+        // Eğer public/tiles/ klasöründe görseller varsa onları yükle
+        // Yoksa prosedürel tile'lar kullanılacak (fallback)
+        
+        // 🎨 SPRITESHEET YÜKLEME - 9 tile'lı ground sistemi
+        // somi-lands.png içinde 3x3 grid = 9 farklı tile var
+        this.load.spritesheet('ground-tiles', '/tiles/ground/somi-lands.png', {
+            frameWidth: 130,   // Her tile 130 piksel genişlik
+            frameHeight: 66    // Her tile 66 piksel yükseklik (2:1 izometrik)
+        });
+        
+        // Eski tekli tile'lar (fallback için)
+        this.load.image('tile-water-img', '/tiles/ground/water.png');
+        this.load.image('tile-path-img', '/tiles/ground/path.png');
+        
+        // Decoration (Dekorasyon) Tiles
+        this.load.image('tile-tree-img', '/tiles/decorations/tree.png');
+        this.load.image('tile-stone-img', '/tiles/decorations/stone.png');
+        
+        // Buildings (Binalar)
+        this.load.image('building-swap-img', '/tiles/buildings/swap-building.png');
+        this.load.image('building-meme-img', '/tiles/buildings/meme-build.png');
+        this.load.image('building-lending-img', '/tiles/buildings/lending-building.png');
+        
+        // Error handling - Eğer görsel yüklenemezse prosedürel kullan
+        this.load.on('loaderror', (file) => {
+            console.log(`Asset yüklenemedi: ${file.key}, prosedürel tile kullanılacak`);
+        });
+
+        // Here we'll create procedural graphics (fallback için)
         this.createPlaceholderAssets();
     }
 
@@ -94,11 +125,10 @@ export default class BootScene extends Phaser.Scene {
         playerGraphics.generateTexture('player', 64, 64);
         playerGraphics.destroy();
 
-        // Create simple building markers
-        this.createSimpleBuildingMarker('building-swap', 0xFF0080, '💱');
-        this.createSimpleBuildingMarker('building-nft', 0x8B5CF6, '🎨');
-        this.createSimpleBuildingMarker('building-faucet', 0x00D4FF, '🚰');
-        this.createSimpleBuildingMarker('building-staking', 0xfbbf24, '🔒');
+        // 🎨 CYBERPUNK BİNALAR
+        this.createCyberpunkBuilding('building-swap', 0xFF0080, 'S\nW\nA\nP');
+        this.createCyberpunkBuilding('building-nft', 0x8B5CF6, 'XD');
+        this.createCyberpunkBuilding('building-faucet', 0xfbbf24, '$$$');
     }
 
     createGrassTile(width, height) {
@@ -253,6 +283,61 @@ export default class BootScene extends Phaser.Scene {
         
         graphics.generateTexture('tile-stone', width, height);
         graphics.destroy();
+    }
+
+    createCyberpunkBuilding(key, color, text) {
+        const width = 120;
+        const height = 150;
+        
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        
+        // Bina gövdesi (silindir/yuvarlak)
+        graphics.fillStyle(color, 0.9);
+        graphics.fillRoundedRect(20, 20, 80, 110, 15);
+        
+        // Neon kenarlık
+        graphics.lineStyle(3, color, 1);
+        graphics.strokeRoundedRect(20, 20, 80, 110, 15);
+        
+        // Üst platform
+        graphics.fillStyle(color, 0.7);
+        graphics.fillEllipse(60, 20, 60, 20);
+        
+        // Pencereler (neon)
+        for (let i = 0; i < 3; i++) {
+            graphics.fillStyle(0xFFFFFF, 0.3);
+            graphics.fillRect(35, 50 + i * 25, 15, 15);
+            graphics.fillRect(70, 50 + i * 25, 15, 15);
+        }
+        
+        graphics.generateTexture(key, width, height);
+        
+        // Text overlay
+        const textGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+        const style = {
+            font: text.length > 2 ? 'bold 32px Arial' : 'bold 48px Arial',
+            fill: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center'
+        };
+        
+        const textObj = this.make.text({
+            x: width / 2,
+            y: height / 2,
+            text: text,
+            style: style
+        }, false);
+        textObj.setOrigin(0.5, 0.5);
+        
+        const rt = this.make.renderTexture({ x: 0, y: 0, width, height }, false);
+        rt.draw(graphics, 0, 0);
+        rt.draw(textObj, 0, 0);
+        rt.saveTexture(key);
+        rt.destroy();
+        
+        graphics.destroy();
+        textObj.destroy();
     }
 
     createSimpleBuildingMarker(key, color, icon) {
