@@ -5,31 +5,50 @@ export default class Player {
         this.gridY = gridY;
         this.speed = 0.1;
         this.isMoving = false;
+        this.currentDirection = 'idle';
 
         // Calculate offset - TAM EKRAN için dinamik
         const offsetX = this.scene.cameras.main.width / 2;
         const offsetY = this.scene.cameras.main.height / 2;
 
-        // Create sprite
+        // 🎮 Create cyberpunk character sprite
         const pos = this.scene.cartesianToIsometric(gridX, gridY);
-        this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY - 20, 'player');
-        this.sprite.setOrigin(0.5, 0.5);
-        this.updateDepth();
+        this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY - 30, 'cyberpunk-char');
+        this.sprite.setOrigin(0.5, 0.75); // Alt orta pivot point (ayaklar)
+        this.sprite.setScale(0.5); // Boyut artırıldı - daha görünür olsun
+        this.sprite.setDepth(10000); // Çok yüksek depth - her zaman en üstte
+        
+        console.log('✅ Cyberpunk character created at:', this.sprite.x, this.sprite.y, 'depth:', this.sprite.depth);
 
-        // Add glow effect
-        this.glow = this.scene.add.circle(pos.x + offsetX, pos.y + offsetY, 30, 0xFF0080, 0.2);
-        this.glow.setDepth(this.sprite.depth - 1);
+        // 🎬 Create animations
+        this.createAnimations();
+        
+        // Başlangıç animasyonu: IDLE
+        this.sprite.play('player-idle');
 
-        // Animate glow
-        this.scene.tweens.add({
-            targets: this.glow,
-            scaleX: 1.2,
-            scaleY: 1.2,
-            alpha: 0.1,
-            duration: 1000,
-            yoyo: true,
-            repeat: -1
-        });
+        // Glow efekti kaldırıldı - karakter kendi neon ışıklara sahip
+    }
+    
+    createAnimations() {
+        // IDLE animasyonu (Frame 2 - ortadaki frame)
+        if (!this.scene.anims.exists('player-idle')) {
+            this.scene.anims.create({
+                key: 'player-idle',
+                frames: this.scene.anims.generateFrameNumbers('cyberpunk-char', { start: 2, end: 2 }),
+                frameRate: 1,
+                repeat: -1
+            });
+        }
+        
+        // WALK animasyonu (Frame 4-11 - 8 yön yürüme)
+        if (!this.scene.anims.exists('player-walk')) {
+            this.scene.anims.create({
+                key: 'player-walk',
+                frames: this.scene.anims.generateFrameNumbers('cyberpunk-char', { start: 4, end: 11 }),
+                frameRate: 12, // Hızlı yürüme animasyonu
+                repeat: -1
+            });
+        }
     }
 
     move(dirX, dirY) {
@@ -48,20 +67,22 @@ export default class Player {
         // Convert to isometric position
         const pos = this.scene.cartesianToIsometric(this.gridX, this.gridY);
         this.sprite.x = pos.x + offsetX;
-        this.sprite.y = pos.y + offsetY - 20;
-        this.glow.x = pos.x + offsetX;
-        this.glow.y = pos.y + offsetY;
+        this.sprite.y = pos.y + offsetY - 30;
 
         this.updateDepth();
 
-        // Add subtle rotation for movement feedback
-        const angle = Math.atan2(dirY, dirX);
-        this.sprite.rotation = Phaser.Math.Linear(this.sprite.rotation, angle, 0.1);
+        // 🎬 Play walk animation (hareket ediyor)
+        if (this.sprite.anims.currentAnim?.key !== 'player-walk') {
+            this.sprite.play('player-walk');
+        }
+        
+        this.isMoving = true;
     }
 
     updateDepth() {
-        const depth = Math.floor(this.gridY * 100 + this.gridX) + 50;
-        this.sprite.setDepth(depth);
+        // Karakter her zaman en üstte - sabit depth
+        // Binalardan daha yüksek depth değeri
+        this.sprite.setDepth(10000);
     }
 
     getGridPosition() {

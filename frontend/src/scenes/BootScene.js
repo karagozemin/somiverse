@@ -15,6 +15,16 @@ export default class BootScene extends Phaser.Scene {
         
         // Custom ground - İzometrik neon grid (karakterin yürüdüğü alan)
         this.load.image('custom-ground', '/backgrounds/ground.png');
+        
+        // 🎮 CYBERPUNK CHARACTER SPRITESHEET
+        // Resim: 1080x1080 piksel
+        // Düzen: 4 sütun × 3 satır = 12 frame
+        // Frame 0-1: Boş, Frame 2: IDLE (ortada), Frame 3: Boş
+        // Frame 4-11: Yürüme animasyonları (8 yön)
+        this.load.spritesheet('cyberpunk-char', '/character.png', {
+            frameWidth: 270,   // 1080 / 4 sütun = 270
+            frameHeight: 360   // 1080 / 3 satır = 360
+        });
 
         // 🎨 TILE GÖRSELLERİ YÜKLEME SİSTEMİ
         // Eğer public/tiles/ klasöründe görseller varsa onları yükle
@@ -92,6 +102,13 @@ export default class BootScene extends Phaser.Scene {
             progressBox.destroy();
             loadingText.destroy();
             percentText.destroy();
+            
+            // Debug: Karakter texture'ı yüklendi mi?
+            if (this.textures.exists('cyberpunk-char')) {
+                console.log('✅ Cyberpunk character spritesheet yüklendi!');
+            } else {
+                console.error('❌ Cyberpunk character spritesheet yüklenemedi!');
+            }
             
             // Hide loading screen
             document.getElementById('loading-screen').classList.add('hidden');

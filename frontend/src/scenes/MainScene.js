@@ -319,6 +319,12 @@ export default class MainScene extends Phaser.Scene {
 
         if (moveX !== 0 || moveY !== 0) {
             this.player.move(moveX, moveY);
+        } else {
+            // Hareket etmiyorsa IDLE animasyonu oynat
+            if (this.player.sprite.anims.currentAnim?.key !== 'player-idle') {
+                this.player.sprite.play('player-idle');
+            }
+            this.player.isMoving = false;
         }
 
         // Check proximity to buildings (auto-open on close)
