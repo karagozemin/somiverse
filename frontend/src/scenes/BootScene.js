@@ -36,9 +36,9 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('tile-stone-img', '/tiles/decorations/stone.png');
         
         // Buildings (Binalar)
-        this.load.image('building-swap-img', '/tiles/buildings/swap-building.png');
+        this.load.image('building-swap-img', '/tiles/buildings/swap-build.png');
         this.load.image('building-meme-img', '/tiles/buildings/meme-build.png');
-        this.load.image('building-lending-img', '/tiles/buildings/lending-building.png');
+        this.load.image('building-lending-img', '/tiles/buildings/lending-build.png');
         
         // Error handling - Eğer görsel yüklenemezse prosedürel kullan
         this.load.on('loaderror', (file) => {

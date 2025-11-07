@@ -72,30 +72,67 @@ export default class MainScene extends Phaser.Scene {
         this.registry.set('mainScene', this);
     }
 
-    // 🎨 Cyberpunk land tasarımı - Yol sistemini belirle
+    // 🏙️ ŞEHİR PLANI - GENİŞ YOL SİSTEMİ (2 tile genişlik)
     isNeonRoad(x, y) {
-        // Ana çarpı yolları (merkez 12,12)
         const centerX = 12;
         const centerY = 12;
         
-        // Yatay yollar (her 8 tile'da bir)
-        if (y % 8 === 0) return true;
+        // ⭕ MERKEZ MEYDAN (yuvarlak alan - yol değil, zemin)
+        const distanceFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+        if (distanceFromCenter <= 2.5) {
+            return false; // Merkez meydan yol değil
+        }
         
-        // Dikey yollar (her 8 tile'da bir)
-        if (x % 8 === 0) return true;
+        // 🛣️ 1. ANA CADDE: KUZEY-GÜNEY (Dikey - 2 tile genişlik)
+        // Merkezden yukarı Swap'a + aşağı
+        if ((x === centerX || x === centerX + 1) && y >= 0 && y <= 24) {
+            // Merkez meydanı kes
+            if (distanceFromCenter > 2.5) return true;
+        }
         
-        // Merkez çember yolu
-        const distToCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-        if (distToCenter > 8 && distToCenter < 10) return true;
+        // 🛣️ 2. ANA CADDE: DOĞU-BATI (Yatay - 2 tile genişlik)
+        // Merkezden sağa ve sola
+        if ((y === centerY || y === centerY + 1) && x >= 0 && x <= 24) {
+            // Merkez meydanı kes
+            if (distanceFromCenter > 2.5) return true;
+        }
+        
+        // 🛣️ 3. SWAP BİNASI BAĞLANTI YOLU (Yatay - 2 tile)
+        // Bina önü: y = 2-3, x = 10-14
+        if ((y === 2 || y === 3) && x >= 10 && x <= 14) return true;
+        
+        // 🛣️ 4. MEME BİNASI BAĞLANTI YOLU (Dikey - 2 tile)
+        // Bina önü: x = 18-19, y = 13-17
+        if ((x === 18 || x === 19) && y >= 13 && y <= 17) return true;
+        
+        // 🛣️ 5. LENDING BİNASI BAĞLANTI YOLU (Dikey - 2 tile)
+        // Bina önü: x = 5-6, y = 13-17
+        if ((x === 5 || x === 6) && y >= 13 && y <= 17) return true;
+        
+        // 🛣️ 6. YAN SOKAKLAR (Grid sistem - ince yollar)
+        // Dikey sokaklar (her 6 tile'da bir)
+        if (x % 6 === 0 && (y < 10 || y > 14)) return true;
+        
+        // Yatay sokaklar (her 6 tile'da bir)
+        if (y % 6 === 0 && (x < 10 || x > 14)) return true;
         
         return false;
     }
     
-    // 🎨 Kristal pozisyonları
+    // 💎 Kristal pozisyonları (sadece zemin alanlarında, yolda değil)
     isCrystal(x, y) {
+        // Merkez meydan çevresinde kristal olmasın
+        const centerX = 12;
+        const centerY = 12;
+        const distanceFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+        if (distanceFromCenter <= 3) return false;
+        
+        // Yol üzerinde kristal olmasın
+        if (this.isNeonRoad(x, y)) return false;
+        
         // Rastgele kristaller (düşük oran)
         const hash = (x * 73856093) ^ (y * 19349663);
-        return (hash % 100) < 3; // %3 şans
+        return (hash % 120) < 2; // %1.5 şans (daha az)
     }
 
     // 🎨 Helper: Gerçek görsel varsa onu kullan, yoksa prosedürel tile kullan
@@ -242,20 +279,20 @@ export default class MainScene extends Phaser.Scene {
     }
 
     createBuildings() {
-        // 3 ANA BİNA - Orta boyut alanda dağıtıldı (oyuncu 12,12'de başlıyor)
+        // 🏙️ ŞEHİR PLANI - 3 ANA BİNA (oyuncu merkez meydanda başlıyor: 12,12)
         
-        // 💱 SWAP BİNASI - Sol üst bölge
+        // 💱 SWAP BİNASI - KUZEY (Üst taraf)
         // Gerçek görsel varsa kullan: building-swap-img, yoksa: building-swap
         const swapTexture = this.textures.exists('building-swap-img') ? 'building-swap-img' : 'building-swap';
-        this.buildings.push(new Building(this, 6, 6, swapTexture, 'Swap City', 'swap'));
+        this.buildings.push(new Building(this, 12, 3, swapTexture, 'Swap City', 'swap'));
         
-        // 😂 MEME BİNASI - Sağ üst bölge
+        // 😂 MEME BİNASI - GÜNEY-DOĞU (Sağ alt)
         const memeTexture = this.textures.exists('building-meme-img') ? 'building-meme-img' : 'building-nft';
-        this.buildings.push(new Building(this, 18, 6, memeTexture, 'Meme Gallery', 'nft'));
+        this.buildings.push(new Building(this, 19, 17, memeTexture, 'Meme Gallery', 'nft'));
         
-        // 💰 LENDING BİNASI - Alt ortada
+        // 💰 LENDING BİNASI - GÜNEY-BATI (Sol alt)
         const lendingTexture = this.textures.exists('building-lending-img') ? 'building-lending-img' : 'building-faucet';
-        this.buildings.push(new Building(this, 12, 18, lendingTexture, 'Lending Tower', 'faucet'));
+        this.buildings.push(new Building(this, 5, 17, lendingTexture, 'Lending Tower', 'faucet'));
         
         // NOT: Staking binasını kaldırdık, 3 bina olacak dediklerinde
         // İsterseniz tekrar ekleyebiliriz
