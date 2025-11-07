@@ -134,9 +134,20 @@ export default class SwapPopup {
     swapDirection() {
         const fromToken = document.getElementById('from-token');
         const toToken = document.getElementById('to-token');
+        const fromAmount = document.getElementById('from-amount');
+        const toAmount = document.getElementById('to-amount');
+        
+        // Swap token selections
         const temp = fromToken.value;
         fromToken.value = toToken.value;
         toToken.value = temp;
+        
+        // Swap amounts (if to-amount has a value)
+        if (toAmount.value && toAmount.value !== 'Loading...' && parseFloat(toAmount.value) > 0) {
+            const tempAmount = fromAmount.value;
+            fromAmount.value = toAmount.value;
+            toAmount.value = ''; // Will be recalculated by autoGetQuote
+        }
     }
 
     async getQuote(silent = false) {

@@ -120,10 +120,10 @@ class ContractManager {
                 signer
             );
 
-            // Get quote to calculate minimum output (5% slippage tolerance for safety)
+            // Get quote to calculate minimum output (10% slippage tolerance for safety)
             const quote = await this.getSwapQuote(fromToken, toToken, amount);
             const minAmountOut = ethers.parseUnits(
-                (parseFloat(quote.outputAmount) * 0.95).toFixed(18),
+                (parseFloat(quote.outputAmount) * 0.90).toFixed(18),
                 18
             );
             
@@ -131,7 +131,7 @@ class ContractManager {
                 amountIn: ethers.formatUnits(amountIn, 18),
                 expectedOut: quote.outputAmount,
                 minAmountOut: ethers.formatUnits(minAmountOut, 18),
-                slippage: '5%'
+                slippage: '10%'
             });
 
             // Set deadline (10 minutes from now)
@@ -320,16 +320,17 @@ class ContractManager {
                 console.warn('Router quote failed, using estimated rate:', routerError.message);
                 
                 // Fallback: Use a conservative estimated rate
-                // For STT/USDT pair, use approximate market rate (conservative)
+                // For STT/USDT pair, use approximate market rate (very conservative)
                 let estimatedRate = 1.0;
                 
                 if ((fromToken === 'STT' || fromToken === 'WSTT') && toToken === 'USDT') {
-                    // STT → USDT: Based on your successful tx, ~0.1 STT → ~0.354 USDT
-                    // Use conservative rate (10% lower)
+                    // STT → USDT: Based on successful tx, ~0.1 STT → ~0.354 USDT
+                    // Use conservative rate (rate: 3.54, but we use 3.2 to be safe)
                     estimatedRate = 3.2;
                 } else if (fromToken === 'USDT' && (toToken === 'STT' || toToken === 'WSTT')) {
-                    // USDT → STT: reverse
-                    estimatedRate = 1 / 3.2;
+                    // USDT → STT: Based on successful tx, 1 USDT → 0.2793 STT
+                    // Use very conservative rate (20% lower than actual)
+                    estimatedRate = 0.25;
                 }
 
                 const outputAmount = (parseFloat(amount) * estimatedRate * 0.997).toFixed(4); // 0.3% fee
@@ -341,7 +342,7 @@ class ContractManager {
                     inputAmount: amount,
                     outputAmount,
                     rate: estimatedRate.toFixed(4),
-                    priceImpact: '< 5%',
+                    priceImpact: '< 10%',
                     fee: feeAmount,
                     estimated: true
                 };
