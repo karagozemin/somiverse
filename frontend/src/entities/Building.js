@@ -8,9 +8,9 @@ export default class Building {
         this.isNearby = false;
         this.popupOpened = false; // Track if popup is already open
 
-        // Calculate offset
+        // Calculate offset - TAM EKRAN için dinamik
         const offsetX = this.scene.cameras.main.width / 2;
-        const offsetY = this.scene.cameras.main.height / 2 - 200;
+        const offsetY = this.scene.cameras.main.height / 2;
 
         // Create simple sprite marker
         const pos = this.scene.cartesianToIsometric(gridX, gridY);

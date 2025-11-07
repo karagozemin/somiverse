@@ -11,11 +11,24 @@ export default class MainScene extends Phaser.Scene {
         // Isometric grid settings (updated to match new tile size)
         this.tileWidth = 130;
         this.tileHeight = 66;
-        this.gridWidth = 20;
-        this.gridHeight = 20;
+        this.gridWidth = 80;  // Çok daha geniş! (20'den 80'e)
+        this.gridHeight = 80; // Çok daha geniş! (20'den 80'e)
 
-        // Camera setup - Centered map
-        this.cameras.main.setBounds(-500, -500, 3000, 3000);
+        // BACKGROUND IMAGE - Tüm ekranı kapsayan cyberpunk land
+        const worldWidth = 10000;  // Çok geniş dünya
+        const worldHeight = 10000; // Çok geniş dünya
+        
+        // Background ekle - Tiling (tekrarlayan) şekilde
+        if (this.textures.exists('somi-land')) {
+            this.background = this.add.tileSprite(0, 0, worldWidth, worldHeight, 'somi-land');
+            this.background.setOrigin(0.5, 0.5);
+            this.background.setDepth(-100); // En arkada
+            this.background.setAlpha(1); // Tam görünür
+            this.background.setScrollFactor(0.5); // Parallax efekti
+        }
+
+        // Camera setup - ÇOK GENİŞ ALAN
+        this.cameras.main.setBounds(-worldWidth/2, -worldHeight/2, worldWidth, worldHeight);
         this.cameras.main.setZoom(0.85); // Optimal zoom level
 
         // Create the isometric world
@@ -25,8 +38,8 @@ export default class MainScene extends Phaser.Scene {
         this.buildings = [];
         this.createBuildings();
 
-        // Create player at center
-        this.player = new Player(this, 10, 10);
+        // Create player at center (ortada başlasın - 80x80 grid'in ortası)
+        this.player = new Player(this, 40, 40);
         
         // Camera follows player
         this.cameras.main.startFollow(this.player.sprite, true, 0.1, 0.1);
@@ -49,9 +62,9 @@ export default class MainScene extends Phaser.Scene {
     createIsometricWorld() {
         this.tiles = [];
         
-        // Calculate offset to center the map
+        // Calculate offset to center the map - TAM EKRAN için dinamik
         const offsetX = this.cameras.main.width / 2;
-        const offsetY = this.cameras.main.height / 2 - 200;
+        const offsetY = this.cameras.main.height / 2;
         
         // Create a professional map with grass, water, paths, trees, and stones
         for (let y = 0; y < this.gridHeight; y++) {
@@ -95,17 +108,19 @@ export default class MainScene extends Phaser.Scene {
     }
 
     createBuildings() {
-        // Simple building markers - Top left quadrant
-        this.buildings.push(new Building(this, 6, 6, 'building-swap', 'Swap City', 'swap'));
+        // 3 ANA BİNA - Geniş alanda dağıtıldı (oyuncu 40,40'da başlıyor)
         
-        // NFT Gallery - Top right quadrant
-        this.buildings.push(new Building(this, 14, 6, 'building-nft', 'NFT Gallery', 'nft'));
+        // 💱 SWAP BİNASI - Sol üst bölge
+        this.buildings.push(new Building(this, 25, 25, 'building-swap', 'Swap City', 'swap'));
         
-        // Token Fountain - Bottom left quadrant
-        this.buildings.push(new Building(this, 6, 14, 'building-faucet', 'Token Fountain', 'faucet'));
+        // 😂 MEME BİNASI - Sağ üst bölge (NFT yerine)
+        this.buildings.push(new Building(this, 55, 25, 'building-nft', 'Meme Gallery', 'nft'));
         
-        // Staking Tower - Bottom right quadrant
-        this.buildings.push(new Building(this, 14, 14, 'building-staking', 'Staking Tower', 'staking'));
+        // 💰 LENDING BİNASI - Alt ortada (Faucet yerine)
+        this.buildings.push(new Building(this, 40, 55, 'building-faucet', 'Lending Tower', 'faucet'));
+        
+        // NOT: Staking binasını kaldırdık, 3 bina olacak dediklerinde
+        // İsterseniz tekrar ekleyebiliriz
     }
 
     update() {

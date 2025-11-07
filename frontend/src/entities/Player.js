@@ -6,9 +6,9 @@ export default class Player {
         this.speed = 0.1;
         this.isMoving = false;
 
-        // Calculate offset to match map position
+        // Calculate offset - TAM EKRAN için dinamik
         const offsetX = this.scene.cameras.main.width / 2;
-        const offsetY = this.scene.cameras.main.height / 2 - 200;
+        const offsetY = this.scene.cameras.main.height / 2;
 
         // Create sprite
         const pos = this.scene.cartesianToIsometric(gridX, gridY);
@@ -41,9 +41,9 @@ export default class Player {
         this.gridX = newGridX;
         this.gridY = newGridY;
 
-        // Calculate offset
+        // Calculate offset - TAM EKRAN için dinamik
         const offsetX = this.scene.cameras.main.width / 2;
-        const offsetY = this.scene.cameras.main.height / 2 - 200;
+        const offsetY = this.scene.cameras.main.height / 2;
 
         // Convert to isometric position
         const pos = this.scene.cartesianToIsometric(this.gridX, this.gridY);

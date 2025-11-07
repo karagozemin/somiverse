@@ -9,6 +9,10 @@ export default class BootScene extends Phaser.Scene {
         // Create loading bar
         this.createLoadingBar();
 
+        // Load background image (cyberpunk land)
+        // Public klasöründen yükle (daha hızlı ve mantıklı!)
+        this.load.image('somi-land', '/backgrounds/somi-land.png');
+
         // Here we'll load all assets
         // For now, we'll create procedural graphics
         this.createPlaceholderAssets();

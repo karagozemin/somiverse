@@ -24,16 +24,16 @@ function initGame() {
 }
 
 function createGame() {
-    // Game configuration
+    // Game configuration - TAM EKRAN!
     const config = {
         type: Phaser.AUTO,
         parent: 'phaser-game',
-        width: 1920,
-        height: 1080,
+        width: window.innerWidth,
+        height: window.innerHeight,
         transparent: true, // Transparent background to show CSS gradient
         scale: {
-            mode: Phaser.Scale.FIT,
-            autoCenter: Phaser.Scale.CENTER_BOTH
+            mode: Phaser.Scale.RESIZE, // TAM EKRAN - Dinamik boyutlandırma
+            autoCenter: Phaser.Scale.NO_CENTER // Merkez yok, tam ekran
         },
         physics: {
             default: 'arcade',
@@ -57,6 +57,13 @@ function createGame() {
 
     // Export for global access
     window.somniaGame = game;
+    
+    // TAM EKRAN - Window resize listener
+    window.addEventListener('resize', () => {
+        if (game && game.scale) {
+            game.scale.resize(window.innerWidth, window.innerHeight);
+        }
+    });
 }
 
 // Initialize game
