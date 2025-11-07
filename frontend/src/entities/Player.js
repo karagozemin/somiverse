@@ -3,7 +3,7 @@ export default class Player {
         this.scene = scene;
         this.gridX = gridX;
         this.gridY = gridY;
-        this.speed = 0.05;
+        this.speed = 0.08;
         this.isMoving = false;
 
         // Calculate offset - TAM EKRAN için dinamik
