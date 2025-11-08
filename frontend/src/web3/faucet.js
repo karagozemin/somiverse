@@ -14,8 +14,22 @@ class FaucetService {
         if (this.isInitialized) return true;
 
         try {
-            // Try to import local config (will fail if not created yet)
-            // Vite will try to resolve this at build time, so we need to handle it gracefully
+            // First, try to get private key from environment variable (for production/Vercel)
+            const envPrivateKey = import.meta.env.VITE_FAUCET_PRIVATE_KEY;
+            
+            if (envPrivateKey) {
+                // Use environment variable (production/Vercel)
+                this.faucetConfig = {
+                    privateKey: envPrivateKey,
+                    amount: import.meta.env.VITE_FAUCET_AMOUNT || '0.1',
+                    cooldown: import.meta.env.VITE_FAUCET_COOLDOWN ? parseInt(import.meta.env.VITE_FAUCET_COOLDOWN) : 86400000 // 24 hours in milliseconds
+                };
+                this.isInitialized = true;
+                console.log('Faucet configured using environment variables');
+                return true;
+            }
+            
+            // Try to import local config (for development)
             const configPath = '../config/faucet.config.local.js';
             let module;
             
@@ -24,6 +38,7 @@ class FaucetService {
                 module = await import(/* @vite-ignore */ configPath);
                 this.faucetConfig = module.FAUCET_CONFIG;
                 this.isInitialized = true;
+                console.log('Faucet configured using local config file');
                 return true;
             } catch (importError) {
                 // If local config doesn't exist, use default config (without private key)
