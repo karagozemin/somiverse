@@ -72,10 +72,64 @@ export default class MainScene extends Phaser.Scene {
         this.registry.set('mainScene', this);
     }
 
+    // 🏙️ Helper: Bina çevresindeki 5x5 normal ground alanı mı?
+    isBuildingGround(buildingX, buildingY, x, y) {
+        // 5x5 alan: bina merkezde, her yönde 2 tile
+        const minX = buildingX - 2;
+        const maxX = buildingX + 2;
+        const minY = buildingY - 2;
+        const maxY = buildingY + 2;
+        
+        return x >= minX && x <= maxX && y >= minY && y <= maxY;
+    }
+    
+    // 🏙️ Helper: Bina çevresindeki tek sıra neon road mı?
+    isBuildingNeonRoad(buildingX, buildingY, x, y) {
+        // 5x5 alanın etrafında tek sıra neon road
+        const minX = buildingX - 2;
+        const maxX = buildingX + 2;
+        const minY = buildingY - 2;
+        const maxY = buildingY + 2;
+        
+        // Üst kenar: y = minY - 1, x = minX-1 to maxX+1
+        if (y === minY - 1 && x >= minX - 1 && x <= maxX + 1) return true;
+        
+        // Alt kenar: y = maxY + 1, x = minX-1 to maxX+1
+        if (y === maxY + 1 && x >= minX - 1 && x <= maxX + 1) return true;
+        
+        // Sol kenar: x = minX - 1, y = minY to maxY
+        if (x === minX - 1 && y >= minY && y <= maxY) return true;
+        
+        // Sağ kenar: x = maxX + 1, y = minY to maxY
+        if (x === maxX + 1 && y >= minY && y <= maxY) return true;
+        
+        return false;
+    }
+    
     // 🏙️ ŞEHİR PLANI - GENİŞ YOL SİSTEMİ (2 tile genişlik)
     isNeonRoad(x, y) {
         const centerX = 12;
         const centerY = 12;
+        
+        // 🏢 BİNA ÇEVRESİ KONTROLÜ (5x5 normal ground + tek sıra neon road)
+        // TÜM BİNALAR İÇİN AYNI KURAL: 5x5 normal ground + tek sıra neon road çerçevesi
+        
+        // Önce 5x5 alan içindeyse normal ground (neon road değil)
+        if (this.isBuildingGround(3, 3, x, y)) return false; // Faucet (3, 3)
+        if (this.isBuildingGround(12, 3, x, y)) return false; // Swap (12, 3)
+        if (this.isBuildingGround(21, 22, x, y)) return false; // Meme Tower (21, 22) - 5x5 normal ground
+        if (this.isBuildingGround(6, 20, x, y)) return false; // Lending Tower (6, 20) - 5x5 normal ground
+        
+        // Sonra tek sıra neon road kontrolü (5x5 alanın etrafında çerçeve)
+        if (this.isBuildingNeonRoad(3, 3, x, y)) return true; // Faucet (3, 3)
+        if (this.isBuildingNeonRoad(12, 3, x, y)) return true; // Swap (12, 3)
+        if (this.isBuildingNeonRoad(21, 22, x, y)) return true; // Meme Tower (21, 22) - tek sıra neon road
+        // Lending Tower (6, 20) - tek sıra neon road (sağ taraftaki 2 satır hariç)
+        if (this.isBuildingNeonRoad(6, 20, x, y)) {
+            // Sağ taraftaki neon road'un üst 2 satırını kaldır (x = 9, y = 18-19)
+            if (x === 9 && (y === 18 || y === 19)) return false; // Sağ kenarın üst 2 satırı normal ground
+            return true;
+        }
         
         // ⭕ MERKEZ MEYDAN (yuvarlak alan - yol değil, zemin)
         const distanceFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
@@ -102,12 +156,12 @@ export default class MainScene extends Phaser.Scene {
         if ((y === 2 || y === 3) && x >= 10 && x <= 14) return true;
         
         // 🛣️ 4. MEME BİNASI BAĞLANTI YOLU (Dikey - 2 tile)
-        // Bina önü: x = 18-19, y = 13-17
-        if ((x === 18 || x === 19) && y >= 13 && y <= 17) return true;
+        // Bina önü: x = 20-21, y = 18-22 (3 tile aşağı, 2 tile sağa)
+        if ((x === 20 || x === 21) && y >= 18 && y <= 22) return true;
         
         // 🛣️ 5. LENDING BİNASI BAĞLANTI YOLU (Dikey - 2 tile)
-        // Bina önü: x = 5-6, y = 13-17
-        if ((x === 5 || x === 6) && y >= 13 && y <= 17) return true;
+        // Bina önü: x = 6-7, y = 16-20
+        if ((x === 6 || x === 7) && y >= 16 && y <= 20) return true;
         
         // 🛣️ 6. YAN SOKAKLAR (Grid sistem - ince yollar)
         // Dikey sokaklar (her 6 tile'da bir)
@@ -121,18 +175,47 @@ export default class MainScene extends Phaser.Scene {
     
     // 💎 Kristal pozisyonları (sadece zemin alanlarında, yolda değil)
     isCrystal(x, y) {
+        // ⚙️ KRISTAL AYARLARI - Bu değerleri değiştirerek kontrol edebilirsin
+        const CRYSTAL_SETTINGS = {
+            enabled: false,            // Kristaller kapalı
+            density: 2,                // Yoğunluk: 1-10 arası (1=çok az, 10=çok fazla)
+            minDistanceFromCenter: 3,  // Merkezden minimum uzaklık
+            excludeRoads: true,        // Yollarda kristal olmasın mı? (true/false)
+            excludeBuildings: true     // Binaların etrafında kristal olmasın mı? (true/false)
+        };
+        
+        // Kristaller kapalıysa hiç oluşturma
+        if (!CRYSTAL_SETTINGS.enabled) return false;
+        
         // Merkez meydan çevresinde kristal olmasın
         const centerX = 12;
         const centerY = 12;
         const distanceFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-        if (distanceFromCenter <= 3) return false;
+        if (distanceFromCenter <= CRYSTAL_SETTINGS.minDistanceFromCenter) return false;
         
         // Yol üzerinde kristal olmasın
-        if (this.isNeonRoad(x, y)) return false;
+        if (CRYSTAL_SETTINGS.excludeRoads && this.isNeonRoad(x, y)) return false;
         
-        // Rastgele kristaller (düşük oran)
+        // Binaların etrafında kristal olmasın (opsiyonel)
+        if (CRYSTAL_SETTINGS.excludeBuildings) {
+            const buildings = [
+                { x: 3, y: 3 },   // Faucet
+                { x: 12, y: 3 },  // Swap
+                { x: 21, y: 22 }, // Meme (3 tile aşağı, 2 tile sağa)
+                { x: 6, y: 20 }   // Lending Tower
+            ];
+            
+            for (const building of buildings) {
+                const distance = Math.sqrt(Math.pow(x - building.x, 2) + Math.pow(y - building.y, 2));
+                if (distance <= 2) return false; // Bina etrafında 2 tile mesafe
+            }
+        }
+        
+        // Yoğunluğa göre kristal oluştur
+        // density: 1 = %0.8, 2 = %1.5, 5 = %4, 10 = %8
         const hash = (x * 73856093) ^ (y * 19349663);
-        return (hash % 120) < 2; // %1.5 şans (daha az)
+        const chance = Math.max(1, Math.floor(120 / CRYSTAL_SETTINGS.density));
+        return (hash % chance) < 2;
     }
 
     // 🎨 Helper: Gerçek görsel varsa onu kullan, yoksa prosedürel tile kullan
@@ -279,23 +362,24 @@ export default class MainScene extends Phaser.Scene {
     }
 
     createBuildings() {
-        // 🏙️ ŞEHİR PLANI - 3 ANA BİNA (oyuncu merkez meydanda başlıyor: 12,12)
+        // 🏙️ ŞEHİR PLANI - 4 ANA BİNA (oyuncu merkez meydanda başlıyor: 12,12)
         
         // 💱 SWAP BİNASI - KUZEY (Üst taraf)
         // Gerçek görsel varsa kullan: building-swap-img, yoksa: building-swap
         const swapTexture = this.textures.exists('building-swap-img') ? 'building-swap-img' : 'building-swap';
         this.buildings.push(new Building(this, 12, 3, swapTexture, 'Swap City', 'swap'));
         
-        // 😂 MEME BİNASI - GÜNEY-DOĞU (Sağ alt)
+        // 😂 MEME BİNASI - GÜNEY-DOĞU (Sağ alt) - 3 tile aşağı, 2 tile sağa
         const memeTexture = this.textures.exists('building-meme-img') ? 'building-meme-img' : 'building-nft';
-        this.buildings.push(new Building(this, 19, 17, memeTexture, 'Meme Gallery', 'nft'));
+        this.buildings.push(new Building(this, 22, 22, memeTexture, 'Meme Gallery', 'nft'));
         
-        // 💰 LENDING BİNASI - GÜNEY-BATI (Sol alt)
+        // 💰 LENDING BİNASI - GÜNEY-BATI (Sol alt) - 2 tile aşağı indirildi
         const lendingTexture = this.textures.exists('building-lending-img') ? 'building-lending-img' : 'building-faucet';
-        this.buildings.push(new Building(this, 5, 17, lendingTexture, 'Lending Tower', 'lending'));
+        this.buildings.push(new Building(this, 6, 20, lendingTexture, 'Lending Tower', 'lending'));
         
-        // NOT: Staking binasını kaldırdık, 3 bina olacak dediklerinde
-        // İsterseniz tekrar ekleyebiliriz
+        // 🚰 FAUCET BİNASI - KUZEY-BATI (Sol üst köşe)
+        const faucetTexture = this.textures.exists('building-faucet-img') ? 'building-faucet-img' : 'building-faucet';
+        this.buildings.push(new Building(this, 3, 3, faucetTexture, 'Faucet', 'faucet'));
     }
 
     update() {
@@ -319,6 +403,12 @@ export default class MainScene extends Phaser.Scene {
 
         if (moveX !== 0 || moveY !== 0) {
             this.player.move(moveX, moveY);
+        } else {
+            // Hareket etmiyorsa IDLE animasyonu oynat
+            if (this.player.sprite.anims.currentAnim?.key !== 'player-idle') {
+                this.player.sprite.play('player-idle');
+            }
+            this.player.isMoving = false;
         }
 
         // Check proximity to buildings (auto-open on close)

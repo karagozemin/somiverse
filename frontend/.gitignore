@@ -47,3 +47,7 @@ src/web3/contract-addresses.json
 *.key
 *.pem
 
+# Local config files with secrets
+src/config/*.local.js
+src/config/*.local.ts
+

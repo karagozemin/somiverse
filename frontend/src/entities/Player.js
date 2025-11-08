@@ -5,31 +5,63 @@ export default class Player {
         this.gridY = gridY;
         this.speed = 0.08;
         this.isMoving = false;
+        this.currentDirection = 'idle';
+        this.lastDirection = { x: 0, y: 0 }; // Son hareket yönü
 
         // Calculate offset - TAM EKRAN için dinamik
         const offsetX = this.scene.cameras.main.width / 2;
         const offsetY = this.scene.cameras.main.height / 2;
 
-        // Create sprite
+        // 🎮 Create cyberpunk character sprite
         const pos = this.scene.cartesianToIsometric(gridX, gridY);
-        this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY - 20, 'player');
-        this.sprite.setOrigin(0.5, 0.5);
-        this.updateDepth();
-
-        // Add glow effect
-        this.glow = this.scene.add.circle(pos.x + offsetX, pos.y + offsetY, 30, 0xFF0080, 0.2);
-        this.glow.setDepth(this.sprite.depth - 1);
-
-        // Animate glow
-        this.scene.tweens.add({
-            targets: this.glow,
-            scaleX: 1.2,
-            scaleY: 1.2,
-            alpha: 0.1,
-            duration: 1000,
-            yoyo: true,
-            repeat: -1
+        this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY - 50, 'character-sheet', 0);
+        this.sprite.setOrigin(0.5, 0.92); // Alt orta pivot point (ayaklar zemine oturur, kafa tam görünür)
+        this.sprite.setScale(0.45); // Karakter boyutu - küçültüldü
+        this.sprite.setDepth(10000); // Çok yüksek depth - her zaman en üstte
+        
+        console.log('✅ Karakter oluşturuldu:', {
+            position: { x: this.sprite.x, y: this.sprite.y },
+            frame: this.sprite.frame.name,
+            depth: this.sprite.depth,
+            scale: this.sprite.scale
         });
+
+        // 🎬 Create animations
+        this.createAnimations();
+        
+        // Başlangıç animasyonu: IDLE
+        this.sprite.play('player-idle');
+
+        // Glow efekti kaldırıldı - karakter kendi neon ışıklara sahip
+    }
+    
+    createAnimations() {
+        // IDLE animasyonu (Frame 0 - Düz Durş)
+        if (!this.scene.anims.exists('player-idle')) {
+            this.scene.anims.create({
+                key: 'player-idle',
+                frames: [{ key: 'character-sheet', frame: 0 }],
+                frameRate: 1,
+                repeat: -1
+            });
+            console.log('✅ IDLE animasyonu oluşturuldu (Frame 0)');
+        }
+        
+        // WALK animasyonu (Frame 1-2 - yürüme döngüsü)
+        if (!this.scene.anims.exists('player-walk')) {
+            this.scene.anims.create({
+                key: 'player-walk',
+                frames: [
+                    { key: 'character-sheet', frame: 1 },
+                    { key: 'character-sheet', frame: 2 },
+                    { key: 'character-sheet', frame: 1 },
+                    { key: 'character-sheet', frame: 0 } // Ara adım - daha akıcı
+                ],
+                frameRate: 10, // Yürüme hızı - daha hızlı ve akıcı
+                repeat: -1
+            });
+            console.log('✅ WALK animasyonu oluşturuldu (Frame 0-1-2 döngüsü)');
+        }
     }
 
     move(dirX, dirY) {
@@ -48,20 +80,36 @@ export default class Player {
         // Convert to isometric position
         const pos = this.scene.cartesianToIsometric(this.gridX, this.gridY);
         this.sprite.x = pos.x + offsetX;
-        this.sprite.y = pos.y + offsetY - 20;
-        this.glow.x = pos.x + offsetX;
-        this.glow.y = pos.y + offsetY;
+        this.sprite.y = pos.y + offsetY - 50;
 
         this.updateDepth();
 
-        // Add subtle rotation for movement feedback
-        const angle = Math.atan2(dirY, dirX);
-        this.sprite.rotation = Phaser.Math.Linear(this.sprite.rotation, angle, 0.1);
+        // 🎯 YÖN KONTROLÜ - Karakteri gidiş yönüne göre çevir
+        // Sol-Sağ kontrolü (X ekseni)
+        if (dirX < 0) {
+            // SOLA gidiyor - karakteri sola çevir
+            this.sprite.setFlipX(true);
+        } else if (dirX > 0) {
+            // SAĞA gidiyor - normal yön
+            this.sprite.setFlipX(false);
+        }
+        
+        // Yukarı-Aşağı için ek kontroller (isteğe bağlı)
+        // İzometrik görünümde Y hareketi genelde flip gerektirmez
+        
+        // 🎬 YÜRÜME ANİMASYONU OYNAT
+        if (this.sprite.anims.currentAnim?.key !== 'player-walk') {
+            this.sprite.play('player-walk');
+        }
+        
+        this.isMoving = true;
+        this.lastDirection = { x: dirX, y: dirY };
     }
 
     updateDepth() {
-        const depth = Math.floor(this.gridY * 100 + this.gridX) + 50;
-        this.sprite.setDepth(depth);
+        // Karakter her zaman en üstte - sabit depth
+        // Binalardan daha yüksek depth değeri
+        this.sprite.setDepth(10000);
     }
 
     getGridPosition() {
