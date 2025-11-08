@@ -7,6 +7,7 @@ class PointsManager {
         this.rewards = {
             'faucet': 50,
             'swap': 150,
+            'lending': 200,
             'staking': 250,
             'nft': 400
         };

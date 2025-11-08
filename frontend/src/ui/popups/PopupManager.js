@@ -2,6 +2,7 @@ import SwapPopup from './SwapPopup.js';
 import NFTPopup from './NFTPopup.js';
 import FaucetPopup from './FaucetPopup.js';
 import StakingPopup from './StakingPopup.js';
+import LendingPopup from './LendingPopup.js';
 
 class PopupManager {
     constructor() {
@@ -42,6 +43,10 @@ class PopupManager {
             case 'faucet':
                 popup = new FaucetPopup();
                 break;
+            case 'lending':
+                popup = new LendingPopup();
+                this.content.classList.add('lending-popup');
+                break;
             case 'staking':
                 popup = new StakingPopup();
                 break;
@@ -64,6 +69,9 @@ class PopupManager {
 
     closePopup() {
         if (!this.overlay) return;
+        
+        // Remove lending-popup class if exists
+        this.content.classList.remove('lending-popup');
 
         this.overlay.style.display = 'none';
         this.content.innerHTML = '';

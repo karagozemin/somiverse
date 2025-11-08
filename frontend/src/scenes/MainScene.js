@@ -292,7 +292,7 @@ export default class MainScene extends Phaser.Scene {
         
         // 💰 LENDING BİNASI - GÜNEY-BATI (Sol alt)
         const lendingTexture = this.textures.exists('building-lending-img') ? 'building-lending-img' : 'building-faucet';
-        this.buildings.push(new Building(this, 5, 17, lendingTexture, 'Lending Tower', 'faucet'));
+        this.buildings.push(new Building(this, 5, 17, lendingTexture, 'Lending Tower', 'lending'));
         
         // NOT: Staking binasını kaldırdık, 3 bina olacak dediklerinde
         // İsterseniz tekrar ekleyebiliriz
