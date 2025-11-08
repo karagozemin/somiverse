@@ -8,6 +8,7 @@ class WalletManager {
         this.signer = null;
         this.address = null;
         this.isConnected = false;
+        this.ethereumProvider = null;
 
         // Somnia Testnet Configuration (Shannon)
         this.somniaConfig = {
@@ -25,10 +26,47 @@ class WalletManager {
         this.init();
     }
 
+    // Get the best available Ethereum provider
+    getEthereumProvider() {
+        // If we already selected a provider, use it
+        if (this.ethereumProvider) {
+            return this.ethereumProvider;
+        }
+
+        // Check if window.ethereum exists
+        if (!window.ethereum) {
+            return null;
+        }
+
+        // Handle multiple providers (array case)
+        if (Array.isArray(window.ethereum.providers)) {
+            // Multiple providers detected - prefer MetaMask
+            const providers = window.ethereum.providers;
+            
+            // Try to find MetaMask first
+            const metamask = providers.find(p => p.isMetaMask);
+            if (metamask) {
+                this.ethereumProvider = metamask;
+                return metamask;
+            }
+            
+            // Otherwise use the first available provider
+            this.ethereumProvider = providers[0];
+            return providers[0];
+        }
+
+        // Single provider case
+        this.ethereumProvider = window.ethereum;
+        return window.ethereum;
+    }
+
     init() {
-        // Check if wallet is already connected
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (accounts) => {
+        // Get the best available provider
+        const ethereumProvider = this.getEthereumProvider();
+        
+        if (ethereumProvider) {
+            // Set up event listeners
+            ethereumProvider.on('accountsChanged', (accounts) => {
                 if (accounts.length === 0) {
                     this.disconnect();
                 } else {
@@ -36,7 +74,7 @@ class WalletManager {
                 }
             });
 
-            window.ethereum.on('chainChanged', () => {
+            ethereumProvider.on('chainChanged', () => {
                 window.location.reload();
             });
 
@@ -49,14 +87,19 @@ class WalletManager {
         const wasConnected = localStorage.getItem('walletConnected');
         if (wasConnected === 'true') {
             try {
+                const ethereumProvider = this.getEthereumProvider();
+                if (!ethereumProvider) {
+                    return;
+                }
+
                 // Check if already has permission
-                const accounts = await window.ethereum.request({ 
+                const accounts = await ethereumProvider.request({ 
                     method: 'eth_accounts' 
                 });
                 
                 if (accounts.length > 0) {
                     console.log('Auto-reconnecting wallet...');
-                    this.provider = new ethers.BrowserProvider(window.ethereum);
+                    this.provider = new ethers.BrowserProvider(ethereumProvider);
                     this.signer = await this.provider.getSigner();
                     this.address = accounts[0];
                     this.isConnected = true;
@@ -77,7 +120,9 @@ class WalletManager {
     }
 
     async connectWallet() {
-        if (!window.ethereum) {
+        const ethereumProvider = this.getEthereumProvider();
+        
+        if (!ethereumProvider) {
             toastManager.error('Please install MetaMask or another Web3 wallet!');
             return false;
         }
@@ -85,12 +130,28 @@ class WalletManager {
         try {
             toastManager.info('Connecting to wallet...');
             
-            // Request account access
-            const accounts = await window.ethereum.request({ 
-                method: 'eth_requestAccounts' 
-            });
+            // Request account access with better error handling
+            let accounts;
+            try {
+                accounts = await ethereumProvider.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+            } catch (requestError) {
+                // Handle user rejection
+                if (requestError.code === 4001 || requestError.code === 'ACTION_REJECTED') {
+                    toastManager.error('Wallet connection rejected by user');
+                    return false;
+                }
+                // Re-throw other errors
+                throw requestError;
+            }
 
-            this.provider = new ethers.BrowserProvider(window.ethereum);
+            if (!accounts || accounts.length === 0) {
+                toastManager.error('No accounts found. Please unlock your wallet.');
+                return false;
+            }
+
+            this.provider = new ethers.BrowserProvider(ethereumProvider);
             this.signer = await this.provider.getSigner();
             this.address = accounts[0];
             this.isConnected = true;
@@ -109,14 +170,28 @@ class WalletManager {
             return true;
         } catch (error) {
             console.error('Error connecting wallet:', error);
-            toastManager.error('Failed to connect wallet: ' + error.message);
+            
+            // More specific error messages
+            let errorMessage = 'Failed to connect wallet';
+            if (error.message) {
+                errorMessage += ': ' + error.message;
+            } else if (error.code) {
+                errorMessage += ` (Error code: ${error.code})`;
+            }
+            
+            toastManager.error(errorMessage);
             return false;
         }
     }
 
     async switchToSomniaNetwork() {
+        const ethereumProvider = this.getEthereumProvider();
+        if (!ethereumProvider) {
+            return;
+        }
+
         try {
-            await window.ethereum.request({
+            await ethereumProvider.request({
                 method: 'wallet_switchEthereumChain',
                 params: [{ chainId: this.somniaConfig.chainId }],
             });
@@ -124,25 +199,30 @@ class WalletManager {
             // Chain doesn't exist, add it
             if (switchError.code === 4902) {
                 try {
-                    await window.ethereum.request({
+                    await ethereumProvider.request({
                         method: 'wallet_addEthereumChain',
                         params: [this.somniaConfig],
                     });
                 } catch (addError) {
                     console.error('Error adding Somnia network:', addError);
+                    // Don't throw - network switch is not critical for connection
                 }
             } else {
                 console.error('Error switching to Somnia network:', switchError);
+                // Don't throw - network switch is not critical for connection
             }
         }
     }
 
     async handleAccountsChanged(accounts) {
         if (accounts.length > 0) {
-            this.address = accounts[0];
-            this.provider = new ethers.BrowserProvider(window.ethereum);
-            this.signer = await this.provider.getSigner();
-            this.updateUI();
+            const ethereumProvider = this.getEthereumProvider();
+            if (ethereumProvider) {
+                this.address = accounts[0];
+                this.provider = new ethers.BrowserProvider(ethereumProvider);
+                this.signer = await this.provider.getSigner();
+                this.updateUI();
+            }
         }
     }
 
@@ -154,6 +234,7 @@ class WalletManager {
         this.signer = null;
         this.address = null;
         this.isConnected = false;
+        this.ethereumProvider = null; // Reset provider selection
         
         // Remove connection state from localStorage
         localStorage.removeItem('walletConnected');

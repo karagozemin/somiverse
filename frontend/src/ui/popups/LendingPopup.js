@@ -674,7 +674,10 @@ export default class LendingPopup {
 
     async loadData() {
         if (!walletManager.isConnected) {
-            this.populateTables();
+            // Only populate tables if popup is open
+            if (this.isPopupOpen()) {
+                this.populateTables();
+            }
             return;
         }
 
@@ -689,15 +692,30 @@ export default class LendingPopup {
             // Load borrow data (from lending pool)
             await this.loadBorrowData();
             
-            // Update net worth
-            this.updateNetWorth();
-            
-            // Populate tables
-            this.populateTables();
+            // Only update UI if popup is open
+            if (this.isPopupOpen()) {
+                // Update net worth
+                this.updateNetWorth();
+                
+                // Populate tables
+                this.populateTables();
+            }
         } catch (error) {
-            console.error('Error loading data:', error);
-            this.populateTables();
+            // Only log error if popup is open (to avoid console spam)
+            if (this.isPopupOpen()) {
+                console.error('Error loading data:', error);
+                this.populateTables();
+            }
         }
+    }
+
+    // Check if popup is currently open and visible
+    isPopupOpen() {
+        const overlay = document.getElementById('popup-overlay');
+        if (!overlay) return false;
+        
+        const netWorthEl = document.getElementById('net-worth');
+        return overlay.style.display === 'flex' && netWorthEl !== null;
     }
 
     async loadBorrowData() {
@@ -976,11 +994,23 @@ export default class LendingPopup {
         const netWorth = walletValue + suppliedValue;
         
         this.netWorth = netWorth.toFixed(2);
-        document.getElementById('net-worth').textContent = `$${this.netWorth}`;
+        
+        // Only update DOM if elements exist (popup is open)
+        const netWorthEl = document.getElementById('net-worth');
+        if (netWorthEl) {
+            netWorthEl.textContent = `$${this.netWorth}`;
+        }
         
         // Update supplied balance display
-        document.getElementById('supplied-balance').textContent = `$${suppliedValue.toFixed(2)}`;
-        document.getElementById('collateral-balance').textContent = `$${suppliedValue.toFixed(2)}`;
+        const suppliedBalanceEl = document.getElementById('supplied-balance');
+        if (suppliedBalanceEl) {
+            suppliedBalanceEl.textContent = `$${suppliedValue.toFixed(2)}`;
+        }
+        
+        const collateralBalanceEl = document.getElementById('collateral-balance');
+        if (collateralBalanceEl) {
+            collateralBalanceEl.textContent = `$${suppliedValue.toFixed(2)}`;
+        }
     }
 
     populateTables() {
@@ -1052,7 +1082,7 @@ export default class LendingPopup {
     populateAssetsToBorrow() {
         const tbody = document.getElementById('assets-to-borrow-body');
         if (!tbody) {
-            console.error('assets-to-borrow-body not found');
+            // Element not found - popup might not be open or in wrong mode
             return;
         }
 
@@ -1519,20 +1549,26 @@ export default class LendingPopup {
                 // Second reload - ensure borrow data is updated (your borrows section)
                 await this.loadBorrowData();
                 await this.loadSuppliedBalance();
-                this.updateNetWorth();
-                this.populateTables();
+                
+                // Only update UI if popup is still open
+                if (this.isPopupOpen()) {
+                    this.updateNetWorth();
+                    this.populateTables();
+                }
                 
                 // Third reload after another delay
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 await this.loadData();
                 
-                // Ensure we're on borrow mode to see the updated borrows
-                if (this.currentMode !== 'borrow') {
-                    this.switchMode('borrow');
-                } else {
-                    // Force repopulate borrow tables
-                    this.populateYourBorrows();
-                    this.populateAssetsToBorrow();
+                // Ensure we're on borrow mode to see the updated borrows (only if popup is open)
+                if (this.isPopupOpen()) {
+                    if (this.currentMode !== 'borrow') {
+                        this.switchMode('borrow');
+                    } else {
+                        // Force repopulate borrow tables
+                        this.populateYourBorrows();
+                        this.populateAssetsToBorrow();
+                    }
                 }
                 
                 // Show points earned
