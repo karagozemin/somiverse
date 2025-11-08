@@ -62,7 +62,7 @@ export default class NFTPopup {
             </div>
             <div class="popup-body">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 48px; margin-bottom: 10px;">🎨</div>
+                    <div style="font-size: 48px; margin-bottom: 10px;">💎</div>
                     <p style="opacity: 0.7; font-size: 14px;">Mint unique Somnia NFTs</p>
                 </div>
 
