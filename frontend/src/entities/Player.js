@@ -16,7 +16,7 @@ export default class Player {
         const pos = this.scene.cartesianToIsometric(gridX, gridY);
         this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY - 50, 'character-sheet', 0);
         this.sprite.setOrigin(0.5, 0.92); // Alt orta pivot point (ayaklar zemine oturur, kafa tam görünür)
-        this.sprite.setScale(0.55); // Karakter boyutu - oyun dünyasına uygun
+        this.sprite.setScale(0.45); // Karakter boyutu - küçültüldü
         this.sprite.setDepth(10000); // Çok yüksek depth - her zaman en üstte
         
         console.log('✅ Karakter oluşturuldu:', {
