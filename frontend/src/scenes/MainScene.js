@@ -51,6 +51,11 @@ export default class MainScene extends Phaser.Scene {
         this.buildings = [];
         this.createBuildings();
 
+        // Eski player sprite'ını temizle (ikili görünmeyi önlemek için)
+        if (this.player && this.player.sprite) {
+            this.player.sprite.destroy();
+        }
+
         // Create player at center (ortada başlasın - 25x25 grid'in ortası)
         this.player = new Player(this, 12, 12);
         
@@ -85,23 +90,23 @@ export default class MainScene extends Phaser.Scene {
     
     // 🏙️ Helper: Bina çevresindeki tek sıra neon road mı?
     isBuildingNeonRoad(buildingX, buildingY, x, y) {
-        // 5x5 alanın etrafında tek sıra neon road
+        // 5x5 alanın etrafında tek sıra neon road (tüm köşeler dahil)
         const minX = buildingX - 2;
         const maxX = buildingX + 2;
         const minY = buildingY - 2;
         const maxY = buildingY + 2;
         
-        // Üst kenar: y = minY - 1, x = minX-1 to maxX+1
+        // Üst kenar: y = minY - 1, x = minX-1 to maxX+1 (köşeler dahil)
         if (y === minY - 1 && x >= minX - 1 && x <= maxX + 1) return true;
         
-        // Alt kenar: y = maxY + 1, x = minX-1 to maxX+1
+        // Alt kenar: y = maxY + 1, x = minX-1 to maxX+1 (köşeler dahil)
         if (y === maxY + 1 && x >= minX - 1 && x <= maxX + 1) return true;
         
-        // Sol kenar: x = minX - 1, y = minY to maxY
-        if (x === minX - 1 && y >= minY && y <= maxY) return true;
+        // Sol kenar: x = minX - 1, y = minY-1 to maxY+1 (köşeler dahil)
+        if (x === minX - 1 && y >= minY - 1 && y <= maxY + 1) return true;
         
-        // Sağ kenar: x = maxX + 1, y = minY to maxY
-        if (x === maxX + 1 && y >= minY && y <= maxY) return true;
+        // Sağ kenar: x = maxX + 1, y = minY-1 to maxY+1 (köşeler dahil)
+        if (x === maxX + 1 && y >= minY - 1 && y <= maxY + 1) return true;
         
         return false;
     }
@@ -124,12 +129,7 @@ export default class MainScene extends Phaser.Scene {
         if (this.isBuildingNeonRoad(3, 3, x, y)) return true; // Faucet (3, 3)
         if (this.isBuildingNeonRoad(12, 3, x, y)) return true; // Swap (12, 3)
         if (this.isBuildingNeonRoad(21, 22, x, y)) return true; // Meme Tower (21, 22) - tek sıra neon road
-        // Lending Tower (5, 19) - tek sıra neon road (sağ taraftaki 2 satır hariç)
-        if (this.isBuildingNeonRoad(5, 19, x, y)) {
-            // Sağ taraftaki neon road'un üst 2 satırını kaldır (x = 8, y = 17-18)
-            if (x === 8 && (y === 17 || y === 18)) return false; // Sağ kenarın üst 2 satırı normal ground
-            return true;
-        }
+        if (this.isBuildingNeonRoad(5, 19, x, y)) return true; // Lending Tower (5, 19) - tek sıra neon road (Swap/Faucet gibi düzenli)
         
         // ⭕ MERKEZ MEYDAN (yuvarlak alan - yol değil, zemin)
         const distanceFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));

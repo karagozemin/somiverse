@@ -17,7 +17,8 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('custom-ground', '/backgrounds/ground.png');
         
         // 🎮 CYBERPUNK CHARACTER SPRITESHEET
-        // Resim: 1080x1080 piksel
+        // character.png: Siyah arka plan, 4 tam karakter alt satırda
+        // Resim: 1563x1563 piksel
         // ALT SATIRDA 4 TAM KARAKTER VAR (Idle, Walk1, Walk2, Hologram)
         // Bu karakterleri manuel olarak frame'lere ayıracağız
         this.load.image('character-sheet', '/character.png');
@@ -109,8 +110,10 @@ export default class BootScene extends Phaser.Scene {
     }
 
     createCharacterFrames() {
-        // YENİ character.png: Siyah arka plan, 4 tam karakter alt satırda
-        // Resim: 512x512 piksel (daha küçük, optimize edilmiş)
+        // character.png: Siyah arka plan, 4 tam karakter alt satırda
+        // Resim: 1563x1563 piksel
+        // ALT SATIRDA 4 TAM KARAKTER VAR (Idle, Walk1, Walk2, Hologram)
+        // Kafanın TAMAMINI görmek için daha yukarıdan başlıyoruz
         
         if (!this.textures.exists('character-sheet')) {
             console.error('❌ character-sheet yüklenemedi!');
