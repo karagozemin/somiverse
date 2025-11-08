@@ -279,7 +279,7 @@ export default class MainScene extends Phaser.Scene {
     }
 
     createBuildings() {
-        // 🏙️ ŞEHİR PLANI - 3 ANA BİNA (oyuncu merkez meydanda başlıyor: 12,12)
+        // 🏙️ ŞEHİR PLANI - 4 ANA BİNA (oyuncu merkez meydanda başlıyor: 12,12)
         
         // 💱 SWAP BİNASI - KUZEY (Üst taraf)
         // Gerçek görsel varsa kullan: building-swap-img, yoksa: building-swap
@@ -292,10 +292,11 @@ export default class MainScene extends Phaser.Scene {
         
         // 💰 LENDING BİNASI - GÜNEY-BATI (Sol alt)
         const lendingTexture = this.textures.exists('building-lending-img') ? 'building-lending-img' : 'building-faucet';
-        this.buildings.push(new Building(this, 5, 17, lendingTexture, 'Lending Tower', 'faucet'));
+        this.buildings.push(new Building(this, 5, 17, lendingTexture, 'Lending Tower', 'lending'));
         
-        // NOT: Staking binasını kaldırdık, 3 bina olacak dediklerinde
-        // İsterseniz tekrar ekleyebiliriz
+        // 🚰 FAUCET BİNASI - KUZEY-BATI (Sol üst köşe)
+        const faucetTexture = this.textures.exists('building-faucet-img') ? 'building-faucet-img' : 'building-faucet';
+        this.buildings.push(new Building(this, 3, 3, faucetTexture, 'Faucet', 'faucet'));
     }
 
     update() {
@@ -319,6 +320,12 @@ export default class MainScene extends Phaser.Scene {
 
         if (moveX !== 0 || moveY !== 0) {
             this.player.move(moveX, moveY);
+        } else {
+            // Hareket etmiyorsa IDLE animasyonu oynat
+            if (this.player.sprite.anims.currentAnim?.key !== 'player-idle') {
+                this.player.sprite.play('player-idle');
+            }
+            this.player.isMoving = false;
         }
 
         // Check proximity to buildings (auto-open on close)

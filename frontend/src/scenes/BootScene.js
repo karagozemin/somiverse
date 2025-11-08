@@ -15,6 +15,12 @@ export default class BootScene extends Phaser.Scene {
         
         // Custom ground - İzometrik neon grid (karakterin yürüdüğü alan)
         this.load.image('custom-ground', '/backgrounds/ground.png');
+        
+        // 🎮 CYBERPUNK CHARACTER SPRITESHEET
+        // Resim: 1080x1080 piksel
+        // ALT SATIRDA 4 TAM KARAKTER VAR (Idle, Walk1, Walk2, Hologram)
+        // Bu karakterleri manuel olarak frame'lere ayıracağız
+        this.load.image('character-sheet', '/character.png');
 
         // 🎨 TILE GÖRSELLERİ YÜKLEME SİSTEMİ
         // Eğer public/tiles/ klasöründe görseller varsa onları yükle
@@ -39,6 +45,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('building-swap-img', '/tiles/buildings/swap-build.png');
         this.load.image('building-meme-img', '/tiles/buildings/meme-build.png');
         this.load.image('building-lending-img', '/tiles/buildings/lending-build.png');
+        this.load.image('building-faucet-img', '/tiles/buildings/faucet.png');
         
         // Error handling - Eğer görsel yüklenemezse prosedürel kullan
         this.load.on('loaderror', (file) => {
@@ -93,9 +100,61 @@ export default class BootScene extends Phaser.Scene {
             loadingText.destroy();
             percentText.destroy();
             
+            // 🎬 Karakter frame'lerini manuel olarak oluştur
+            this.createCharacterFrames();
+            
             // Hide loading screen
             document.getElementById('loading-screen').classList.add('hidden');
         });
+    }
+
+    createCharacterFrames() {
+        // YENİ character.png: Siyah arka plan, 4 tam karakter alt satırda
+        // Resim: 512x512 piksel (daha küçük, optimize edilmiş)
+        
+        if (!this.textures.exists('character-sheet')) {
+            console.error('❌ character-sheet yüklenemedi!');
+            return;
+        }
+        
+        const sheet = this.textures.get('character-sheet');
+        const sourceImg = sheet.getSourceImage();
+        
+        console.log('📏 Character sheet boyutları:', sourceImg.width, 'x', sourceImg.height);
+        
+        // Alt satırdaki 4 karakter (1563x1563 resim için KAFASI TAM koordinatlar)
+        // Kafanın TAMAMINI görmek için daha yukarıdan başlıyoruz
+        const frameConfigs = [
+            // IDLE (Düz Durş) - En sol karakter
+            { x: 35, y: 920, width: 330, height: 550 },
+            
+            // WALK 1 (Yürüyüş Adımı) - 2. karakter  
+            { x: 415, y: 920, width: 330, height: 550 },
+            
+            // WALK 2 (Yürüü Dövüş Adımı) - 3. karakter
+            { x: 795, y: 920, width: 330, height: 550 },
+            
+            // INTERACT (Hologram Tablet) - En sağ karakter
+            { x: 1175, y: 920, width: 330, height: 550 }
+        ];
+        
+        // Her frame'i texture'a ekle
+        frameConfigs.forEach((config, index) => {
+            sheet.add(
+                index,           // frame index
+                0,               // source index
+                config.x,        
+                config.y,        
+                config.width,    
+                config.height    
+            );
+        });
+        
+        console.log('✅ Karakter frame\'leri oluşturuldu:');
+        console.log('   Frame 0: IDLE (Düz Durş) - x:' + frameConfigs[0].x);
+        console.log('   Frame 1: WALK 1 (Yürüyüş) - x:' + frameConfigs[1].x);
+        console.log('   Frame 2: WALK 2 (Dövüş) - x:' + frameConfigs[2].x);
+        console.log('   Frame 3: INTERACT (Hologram) - x:' + frameConfigs[3].x);
     }
 
     createPlaceholderAssets() {

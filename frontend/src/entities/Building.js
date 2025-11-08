@@ -15,8 +15,8 @@ export default class Building {
         // Create simple sprite marker
         const pos = this.scene.cartesianToIsometric(gridX, gridY);
         this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY, texture);
-        this.sprite.setOrigin(0.5, 0.5);
-        this.sprite.setScale(0.35); // Daha da küçültüldü: 0.5 → 0.35
+        this.sprite.setOrigin(0.5, 0.85); // Alt orta - bina zemine tam oturur
+        this.sprite.setScale(0.35); // Diğer binalarla aynı boyut
         this.sprite.setBlendMode(Phaser.BlendModes.NORMAL); // Şeffaflık için blend mode
         
         // Higher depth to appear above tiles
@@ -24,7 +24,8 @@ export default class Building {
         this.sprite.setDepth(depth);
 
         // Simple label above marker
-        this.hintText = this.scene.add.text(pos.x + offsetX, pos.y + offsetY - 80, this.name, {
+        // Origin (0.5, 0.85) olduğu için text pozisyonunu ayarla
+        this.hintText = this.scene.add.text(pos.x + offsetX, pos.y + offsetY - 100, this.name, {
             font: 'bold 14px Arial',
             fill: '#ffffff',
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
