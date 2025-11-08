@@ -123,13 +123,18 @@ export default class MainScene extends Phaser.Scene {
         if (this.isBuildingGround(3, 3, x, y)) return false; // Faucet (3, 3)
         if (this.isBuildingGround(12, 3, x, y)) return false; // Swap (12, 3)
         if (this.isBuildingGround(21, 22, x, y)) return false; // Meme Tower (21, 22) - 5x5 normal ground
-        if (this.isBuildingGround(5, 19, x, y)) return false; // Lending Tower (5, 19) - 5x5 normal ground (2 tile aşağı)
+        if (this.isBuildingGround(6, 20, x, y)) return false; // Lending Tower (6, 20) - 5x5 normal ground
         
         // Sonra tek sıra neon road kontrolü (5x5 alanın etrafında çerçeve)
         if (this.isBuildingNeonRoad(3, 3, x, y)) return true; // Faucet (3, 3)
         if (this.isBuildingNeonRoad(12, 3, x, y)) return true; // Swap (12, 3)
         if (this.isBuildingNeonRoad(21, 22, x, y)) return true; // Meme Tower (21, 22) - tek sıra neon road
-        if (this.isBuildingNeonRoad(5, 19, x, y)) return true; // Lending Tower (5, 19) - tek sıra neon road (Swap/Faucet gibi düzenli)
+        // Lending Tower (5, 19) - tek sıra neon road (sağ taraftaki 2 satır hariç)
+        if (this.isBuildingNeonRoad(6, 20, x, y)) {
+            // Sağ taraftaki neon road'un üst 2 satırını kaldır (x = 8, y = 17-18)
+            if (x === 8 && (y === 17 || y === 18)) return false; // Sağ kenarın üst 2 satırı normal ground
+            return true;
+        }
         
         // ⭕ MERKEZ MEYDAN (yuvarlak alan - yol değil, zemin)
         const distanceFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
@@ -160,8 +165,8 @@ export default class MainScene extends Phaser.Scene {
         if ((x === 20 || x === 21) && y >= 18 && y <= 22) return true;
         
         // 🛣️ 5. LENDING BİNASI BAĞLANTI YOLU (Dikey - 2 tile)
-        // Bina önü: x = 5-6, y = 13-17
-        if ((x === 5 || x === 6) && y >= 13 && y <= 17) return true;
+        // Bina önü: x = 6-7, y = 16-20
+        if ((x === 6 || x === 7) && y >= 16 && y <= 20) return true;
         
         // 🛣️ 6. YAN SOKAKLAR (Grid sistem - ince yollar)
         // Dikey sokaklar (her 6 tile'da bir)
@@ -202,7 +207,7 @@ export default class MainScene extends Phaser.Scene {
                 { x: 3, y: 3 },   // Faucet
                 { x: 12, y: 3 },  // Swap
                 { x: 21, y: 22 }, // Meme (3 tile aşağı, 2 tile sağa)
-                { x: 7, y: 25 }   // Lending (2 tile aşağı)
+                { x: 6, y: 20 }   // Lending Tower
             ];
             
             for (const building of buildings) {

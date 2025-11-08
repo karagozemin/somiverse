@@ -8,6 +8,8 @@ class ContractManager {
         this.contracts = {
             // Uniswap V2 Router on Somnia
             uniswapRouter: '0x8779b407ab9B91901df322B7d4226a3a059ABe76',
+            // Tokos.fi Lending Pool on Somnia
+            lendingPool: '0x29edCCDB3aE8CDF0ea6077cd3E682BfA6dD53f19',
             faucet: '0x0000000000000000000000000000000000000000', // To be updated
             nft: '0x0000000000000000000000000000000000000000', // To be updated
             staking: '0x0000000000000000000000000000000000000000' // To be updated
@@ -20,6 +22,18 @@ class ContractManager {
             'USDT': '0xDa4FDE38bE7a2b959BF46E032ECfA21e64019b76', // USDT.g
             'USDC': '0x0000000000000000000000000000000000000000', // To be added
             'DAI': '0x0000000000000000000000000000000000000000' // To be added
+        };
+
+        // aToken addresses (for lending pool)
+        this.aTokens = {
+            'WSTT': '0x0A197587EE751237FfBE555568d9485e467da2A3', // aToken for WSTT
+            'STT': '0x0A197587EE751237FfBE555568d9485e467da2A3' // Same as WSTT
+        };
+
+        // Debt token addresses (for borrowing)
+        this.debtTokens = {
+            'WSTT': '0xCabad01fb6583C8ebA17BF1D3A7d0Fc36FE248ed', // Variable debt token for WSTT
+            'STT': '0xCabad01fb6583C8ebA17BF1D3A7d0Fc36FE248ed' // Same as WSTT
         };
 
         // Uniswap V2 Router ABI (only methods we need)
@@ -36,6 +50,23 @@ class ContractManager {
                 'function allowance(address owner, address spender) external view returns (uint256)',
                 'function balanceOf(address account) external view returns (uint256)',
                 'function decimals() external view returns (uint8)'
+            ],
+            debtToken: [
+                'function approveDelegation(address delegatee, uint256 amount) external',
+                'function borrowAllowance(address fromUser, address toUser) external view returns (uint256)'
+            ],
+            lendingPool: [
+                'function depositETH(address asset, address onBehalfOf, uint16 referralCode) external payable',
+                'function deposit(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external',
+                'function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external',
+                'function withdraw(address asset, uint256 amount, address to) external returns (uint256)',
+                'function withdrawETH(address asset, uint256 amount, address to) external returns (uint256)',
+                'function borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf) external',
+                'function borrowETH(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode) external payable',
+                'function setUserUseReserveAsCollateral(address asset, bool useAsCollateral) external',
+                'function getUserAccountData(address user) external view returns (uint256 totalCollateralETH, uint256 totalDebtETH, uint256 availableBorrowsETH, uint256 currentLiquidationThreshold, uint256 ltv, uint256 healthFactor)',
+                'function getReserveData(address asset) external view returns (tuple(address aTokenAddress, address stableDebtTokenAddress, address variableDebtTokenAddress, address interestRateStrategyAddress, uint8 id))',
+                'function getUserReserveData(address asset, address user) external view returns (uint256 currentATokenBalance, uint256 currentStableDebt, uint256 currentVariableDebt, uint256 principalStableDebt, uint256 scaledVariableDebt, uint256 liquidityRate, uint40 stableRateLastUpdated, bool usageAsCollateralEnabled)'
             ]
         };
     }
@@ -502,6 +533,299 @@ class ContractManager {
         } catch (error) {
             console.error('Error getting balance:', error);
             return '0';
+        }
+    }
+
+    // Lending Functions - Tokos.fi style (On-chain)
+    async supplySTT(amount, useAsCollateral = true) {
+        try {
+            if (!walletManager.isConnected) {
+                throw new Error('Please connect your wallet first');
+            }
+
+            const signer = walletManager.getSigner();
+            const userAddress = walletManager.getAddress();
+            const lendingPoolAddress = this.contracts.lendingPool;
+            const wsttAddress = this.tokens['WSTT'];
+
+            // Convert amount to Wei (18 decimals)
+            const amountIn = ethers.parseUnits(amount.toString(), 18);
+
+            // Check native STT balance
+            const balance = await signer.provider.getBalance(userAddress);
+            if (balance < amountIn) {
+                throw new Error('Insufficient STT balance');
+            }
+
+            console.log(`Supplying ${amount} STT using depositETH (collateral: ${useAsCollateral})...`);
+
+            // Get lending pool contract
+            const lendingPool = new ethers.Contract(
+                lendingPoolAddress,
+                this.abis.lendingPool,
+                signer
+            );
+
+            // Step 1: Deposit native STT using depositETH
+            // depositETH(address asset, address onBehalfOf, uint16 referralCode)
+            // referralCode = 0 (no referral)
+            console.log('Depositing native STT via depositETH...');
+            console.log('Asset (WSTT):', wsttAddress);
+            console.log('Amount:', ethers.formatUnits(amountIn, 18), 'STT');
+            console.log('OnBehalfOf:', userAddress);
+            console.log('Lending Pool Address:', lendingPoolAddress);
+            
+            // depositETH takes 3 parameters: asset, onBehalfOf, referralCode
+            // value is sent in transaction options
+            const tx = await lendingPool.depositETH(
+                wsttAddress,  // asset (WSTT address)
+                userAddress,  // onBehalfOf
+                0,            // referralCode
+                {
+                    value: amountIn  // native STT amount
+                }
+            );
+
+            console.log('Transaction sent:', tx.hash);
+            
+            // Wait for transaction confirmation
+            const receipt = await tx.wait();
+            console.log('Transaction confirmed:', receipt.transactionHash);
+
+            // Step 2: Set collateral if needed
+            if (useAsCollateral) {
+                try {
+                    // Get WETH address (wrapped STT) for collateral
+                    const setCollateralTx = await lendingPool.setUserUseReserveAsCollateral(
+                        wsttAddress,
+                        true
+                    );
+                    await setCollateralTx.wait();
+                    console.log('Collateral enabled');
+                } catch (collateralError) {
+                    console.warn('Failed to set collateral:', collateralError);
+                    // Continue anyway, deposit was successful
+                }
+            }
+
+            // Award points
+            pointsManager.addPoints(userAddress, 'lending');
+
+            return {
+                success: true,
+                message: `Successfully supplied ${amount} STT!`,
+                txHash: receipt.transactionHash
+            };
+        } catch (error) {
+            console.error('Supply error:', error);
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                data: error.data,
+                reason: error.reason
+            });
+            
+            // User-friendly error messages
+            if (error.message.includes('user rejected') || error.message.includes('User denied')) {
+                throw new Error('Transaction rejected by user');
+            } else if (error.message.includes('Fallback not allowed') || error.reason === 'Fallback not allowed') {
+                // This means depositETH function might not exist or has wrong signature
+                console.error('depositETH failed, error:', error);
+                throw new Error('depositETH function call failed. Please check contract ABI.');
+            } else if (error.message) {
+                throw error;
+            } else {
+                throw new Error('Failed to supply STT. Please try again.');
+            }
+        }
+    }
+
+    async borrowSTT(amount) {
+        try {
+            if (!walletManager.isConnected) {
+                throw new Error('Please connect your wallet first');
+            }
+
+            const signer = walletManager.getSigner();
+            const userAddress = walletManager.getAddress();
+            const lendingPoolAddress = this.contracts.lendingPool;
+            const wsttAddress = this.tokens['WSTT'];
+
+            // Convert amount to Wei (18 decimals)
+            const amountIn = ethers.parseUnits(amount.toString(), 18);
+
+            console.log(`Borrowing ${amount} STT...`);
+
+            // Get lending pool contract
+            const lendingPool = new ethers.Contract(
+                lendingPoolAddress,
+                this.abis.lendingPool,
+                signer
+            );
+
+            // Check user account data (health factor, available borrows)
+            try {
+                const accountData = await lendingPool.getUserAccountData(userAddress);
+                const availableBorrows = accountData.availableBorrowsETH;
+                
+                if (availableBorrows < amountIn) {
+                    throw new Error('Insufficient collateral to borrow this amount');
+                }
+            } catch (checkError) {
+                console.warn('Could not check account data:', checkError);
+                // Continue anyway, contract will revert if insufficient
+            }
+
+            // Step 1: Approve delegation on debt token
+            const debtTokenAddress = this.debtTokens['WSTT'];
+            const debtToken = new ethers.Contract(
+                debtTokenAddress,
+                this.abis.debtToken,
+                signer
+            );
+
+            console.log('Approving delegation on debt token...');
+            
+            // Check if delegation is already approved
+            try {
+                const currentAllowance = await debtToken.borrowAllowance(userAddress, lendingPoolAddress);
+                if (currentAllowance < amountIn) {
+                    // Approve delegation with max amount (type(uint256).max)
+                    const maxAmount = ethers.MaxUint256;
+                    const approveTx = await debtToken.approveDelegation(lendingPoolAddress, maxAmount);
+                    console.log('Delegation approval transaction sent:', approveTx.hash);
+                    await approveTx.wait();
+                    console.log('Delegation approved');
+                } else {
+                    console.log('Delegation already approved');
+                }
+            } catch (approveError) {
+                console.warn('Could not check/approve delegation, trying anyway:', approveError);
+                // Try to approve anyway
+                try {
+                    const maxAmount = ethers.MaxUint256;
+                    const approveTx = await debtToken.approveDelegation(lendingPoolAddress, maxAmount);
+                    console.log('Delegation approval transaction sent:', approveTx.hash);
+                    await approveTx.wait();
+                    console.log('Delegation approved');
+                } catch (approveError2) {
+                    console.error('Failed to approve delegation:', approveError2);
+                    throw new Error('Failed to approve delegation. Please try again.');
+                }
+            }
+
+            // Step 2: Borrow STT using borrowETH
+            // interestRateMode: 2 = variable rate (1 = stable rate)
+            // referralCode = 0 (no referral)
+            // borrowETH signature: borrowETH(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode)
+            console.log('Borrowing STT using borrowETH...');
+            const tx = await lendingPool.borrowETH(
+                wsttAddress,  // asset (WSTT)
+                amountIn,     // amount
+                2,            // interestRateMode (variable)
+                0             // referralCode
+            );
+
+            console.log('Transaction sent:', tx.hash);
+            
+            // Wait for transaction confirmation
+            const receipt = await tx.wait();
+            console.log('Transaction confirmed:', receipt.transactionHash);
+
+            // Award points
+            pointsManager.addPoints(userAddress, 'lending');
+
+            return {
+                success: true,
+                message: `Successfully borrowed ${amount} STT!`,
+                txHash: receipt.transactionHash
+            };
+        } catch (error) {
+            console.error('Borrow error:', error);
+            
+            // User-friendly error messages
+            if (error.message.includes('insufficient collateral') || 
+                error.message.includes('health factor')) {
+                throw new Error('Insufficient collateral to borrow this amount');
+            } else if (error.message.includes('user rejected')) {
+                throw new Error('Transaction rejected by user');
+            } else if (error.message) {
+                throw error;
+            } else {
+                throw new Error('Failed to borrow STT. Please check your collateral.');
+            }
+        }
+    }
+
+    async withdrawSTT(amount) {
+        try {
+            if (!walletManager.isConnected) {
+                throw new Error('Please connect your wallet first');
+            }
+
+            const signer = walletManager.getSigner();
+            const userAddress = walletManager.getAddress();
+            const lendingPoolAddress = this.contracts.lendingPool;
+            const wsttAddress = this.tokens['WSTT'];
+
+            // Convert amount to Wei (18 decimals)
+            const amountIn = ethers.parseUnits(amount.toString(), 18);
+
+            console.log(`Withdrawing ${amount} STT...`);
+
+            // Get lending pool contract
+            const lendingPool = new ethers.Contract(
+                lendingPoolAddress,
+                this.abis.lendingPool,
+                signer
+            );
+
+            // Withdraw STT using withdrawETH (for native STT)
+            // Try withdrawETH first, if it fails, try withdraw
+            let tx;
+            try {
+                tx = await lendingPool.withdrawETH(
+                    wsttAddress,  // asset (WSTT)
+                    amountIn,     // amount
+                    userAddress   // to (user address)
+                );
+                console.log('Using withdrawETH() function');
+            } catch (withdrawETHError) {
+                console.log('withdrawETH failed, trying withdraw()...');
+                // Fallback to withdraw() function
+                tx = await lendingPool.withdraw(
+                    wsttAddress,  // asset (WSTT)
+                    amountIn,     // amount
+                    userAddress   // to (user address)
+                );
+                console.log('Using withdraw() function');
+            }
+
+            console.log('Transaction sent:', tx.hash);
+            
+            // Wait for transaction confirmation
+            const receipt = await tx.wait();
+            console.log('Transaction confirmed:', receipt.transactionHash);
+
+            // Award points
+            pointsManager.addPoints(userAddress, 'lending');
+
+            return {
+                success: true,
+                message: `Successfully withdrew ${amount} STT!`,
+                txHash: receipt.transactionHash
+            };
+        } catch (error) {
+            console.error('Withdraw error:', error);
+            
+            // User-friendly error messages
+            if (error.message.includes('user rejected') || error.message.includes('User denied')) {
+                throw new Error('Transaction rejected by user');
+            } else if (error.message) {
+                throw error;
+            } else {
+                throw new Error('Failed to withdraw STT. Please try again.');
+            }
         }
     }
 

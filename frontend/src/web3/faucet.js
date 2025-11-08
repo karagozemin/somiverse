@@ -15,12 +15,37 @@ class FaucetService {
 
         try {
             // Try to import local config (will fail if not created yet)
-            const module = await import('../config/faucet.config.local.js');
-            this.faucetConfig = module.FAUCET_CONFIG;
-            this.isInitialized = true;
-            return true;
+            // Vite will try to resolve this at build time, so we need to handle it gracefully
+            const configPath = '../config/faucet.config.local.js';
+            let module;
+            
+            try {
+                // Use dynamic import with timestamp to avoid caching issues
+                module = await import(/* @vite-ignore */ configPath);
+                this.faucetConfig = module.FAUCET_CONFIG;
+                this.isInitialized = true;
+                return true;
+            } catch (importError) {
+                // If local config doesn't exist, use default config (without private key)
+                // This allows the app to run but faucet won't work until config is created
+                console.warn('Faucet config not found. Using default config. Please copy faucet.config.template.js to faucet.config.local.js and add your private key.');
+                this.faucetConfig = {
+                    privateKey: null, // No private key means faucet won't work
+                    amount: '0.1',
+                    cooldown: 86400000 // 24 hours in milliseconds
+                };
+                this.isInitialized = true;
+                return false; // Return false to indicate faucet is not fully configured
+            }
         } catch (error) {
-            console.error('Faucet config not found. Please copy faucet.config.template.js to faucet.config.local.js and add your private key.');
+            console.error('Faucet initialization error:', error);
+            // Use default config without private key
+            this.faucetConfig = {
+                privateKey: null,
+                amount: '0.1',
+                cooldown: 86400000
+            };
+            this.isInitialized = true;
             return false;
         }
     }
@@ -92,6 +117,11 @@ class FaucetService {
                 const hours = Math.floor(remainingMs / 3600000);
                 const minutes = Math.floor((remainingMs % 3600000) / 60000);
                 throw new Error(`Please wait ${hours}h ${minutes}m before claiming again`);
+            }
+
+            // Check if faucet is configured with private key
+            if (!this.faucetConfig || !this.faucetConfig.privateKey) {
+                throw new Error('Faucet is not configured. Please contact administrator.');
             }
 
             // Create provider and wallet
