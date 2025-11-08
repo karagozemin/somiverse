@@ -7,6 +7,47 @@ export default class NFTPopup {
     constructor() {
         this.isMinting = false;
         this.selectedNFT = null;
+        this.STORAGE_KEY = 'somnia_minted_nfts';
+        this.mintedNFTs = {}; // { address: [nftId1, nftId2, ...] }
+        this.loadMintedNFTs();
+    }
+
+    loadMintedNFTs() {
+        try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            if (stored) {
+                this.mintedNFTs = JSON.parse(stored);
+            }
+        } catch (error) {
+            console.error('Error loading minted NFTs:', error);
+            this.mintedNFTs = {};
+        }
+    }
+
+    saveMintedNFTs() {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.mintedNFTs));
+        } catch (error) {
+            console.error('Error saving minted NFTs:', error);
+        }
+    }
+
+    isNFTMinted(nftId, address) {
+        if (!address) return false;
+        const normalizedAddress = address.toLowerCase();
+        return this.mintedNFTs[normalizedAddress]?.includes(nftId) || false;
+    }
+
+    markNFTAsMinted(nftId, address) {
+        if (!address) return;
+        const normalizedAddress = address.toLowerCase();
+        if (!this.mintedNFTs[normalizedAddress]) {
+            this.mintedNFTs[normalizedAddress] = [];
+        }
+        if (!this.mintedNFTs[normalizedAddress].includes(nftId)) {
+            this.mintedNFTs[normalizedAddress].push(nftId);
+            this.saveMintedNFTs();
+        }
     }
 
     render(title) {
@@ -29,28 +70,37 @@ export default class NFTPopup {
                     <div id="nft-grid" style="display: grid; grid-template-columns: 1fr; gap: 15px;">
                         ${nfts.map(nft => {
                             const hasEnoughPoints = currentPoints >= nft.pointsRequired;
+                            const isMinted = this.isNFTMinted(nft.id, currentAddress);
+                            const canMint = hasEnoughPoints && !isMinted;
                             return `
-                            <div class="nft-card" data-nft-id="${nft.id}" data-points-required="${nft.pointsRequired}" style="
+                            <div class="nft-card" data-nft-id="${nft.id}" data-points-required="${nft.pointsRequired}" data-is-minted="${isMinted}" style="
                                 background: rgba(255, 255, 255, 0.05);
                                 border: 2px solid transparent;
                                 border-radius: 12px;
                                 padding: 15px;
-                                cursor: pointer;
+                                cursor: ${canMint ? 'pointer' : 'not-allowed'};
                                 transition: all 0.3s ease;
-                                opacity: ${hasEnoughPoints ? '1' : '0.6'};
+                                opacity: ${canMint ? '1' : '0.5'};
+                                position: relative;
                             ">
+                                ${isMinted ? `
+                                <div style="position: absolute; top: 10px; right: 10px; background: rgba(34, 197, 94, 0.9); color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; z-index: 10;">
+                                    MINTED ✓
+                                </div>
+                                ` : ''}
                                 <div style="display: flex; gap: 15px; align-items: center;">
-                                    <img src="${nft.image}" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover;" alt="${nft.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+TkZUPC90ZXh0Pjwvc3ZnPg=='">
+                                    <img src="${nft.image}" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover; ${isMinted ? 'filter: grayscale(50%);' : ''}" alt="${nft.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+TkZUPC90ZXh0Pjwvc3ZnPg=='">
                                     <div style="flex: 1;">
                                         <h3 style="margin: 0 0 5px 0; font-size: 16px;">${nft.name}</h3>
                                         <p style="margin: 0 0 8px 0; opacity: 0.7; font-size: 12px;">${nft.description}</p>
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                                             <span style="color: #FF0080; font-weight: 600;">${nft.price}</span>
-                                            <span style="font-size: 12px; color: ${hasEnoughPoints ? '#4ade80' : '#f87171'}; font-weight: 600;">
-                                                ${nft.pointsRequired} pts ${hasEnoughPoints ? '✓' : '✗'}
+                                            <span style="font-size: 12px; color: ${canMint ? '#4ade80' : isMinted ? '#4ade80' : '#f87171'}; font-weight: 600;">
+                                                ${nft.pointsRequired} pts ${canMint ? '✓' : isMinted ? '✓' : '✗'}
                                             </span>
                                         </div>
-                                        ${!hasEnoughPoints ? `<p style="margin: 0; font-size: 11px; color: #f87171;">Need ${nft.pointsRequired - currentPoints} more points</p>` : ''}
+                                        ${!canMint && !isMinted ? `<p style="margin: 0; font-size: 11px; color: #f87171;">Need ${nft.pointsRequired - currentPoints} more points</p>` : ''}
+                                        ${isMinted ? `<p style="margin: 0; font-size: 11px; color: #4ade80; font-weight: 600;">Already minted!</p>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -81,7 +131,10 @@ export default class NFTPopup {
         // NFT card selection
         document.querySelectorAll('.nft-card').forEach(card => {
             card.addEventListener('click', () => {
-                this.selectNFT(card);
+                const isMinted = card.dataset.isMinted === 'true';
+                if (!isMinted) {
+                    this.selectNFT(card);
+                }
             });
         });
 
@@ -104,10 +157,14 @@ export default class NFTPopup {
         const currentAddress = walletManager.address;
         const currentPoints = pointsManager.getPoints(currentAddress);
         const hasEnoughPoints = currentPoints >= pointsRequired;
+        const isMinted = card.dataset.isMinted === 'true';
 
-        // Enable/disable mint button based on points
+        // Enable/disable mint button based on points and mint status
         const mintBtn = document.getElementById('mint-btn');
-        if (hasEnoughPoints) {
+        if (isMinted) {
+            mintBtn.disabled = true;
+            mintBtn.textContent = 'Already Minted';
+        } else if (hasEnoughPoints) {
             mintBtn.disabled = false;
             mintBtn.textContent = `Mint NFT #${this.selectedNFT}`;
         } else {
@@ -135,6 +192,13 @@ export default class NFTPopup {
 
         const currentAddress = walletManager.address;
         const currentPoints = pointsManager.getPoints(currentAddress);
+        
+        // Check if already minted
+        if (this.isNFTMinted(this.selectedNFT, currentAddress)) {
+            this.showMessage('This NFT has already been minted!', 'error');
+            return;
+        }
+        
         if (currentPoints < selectedNFTData.pointsRequired) {
             this.showMessage(`Insufficient points! You need ${selectedNFTData.pointsRequired} points but only have ${currentPoints}`, 'error');
             return;
@@ -150,6 +214,9 @@ export default class NFTPopup {
             const result = await contractManager.mintNFT(this.selectedNFT);
             
             if (result.success) {
+                // Mark NFT as minted
+                this.markNFTAsMinted(this.selectedNFT, currentAddress);
+                
                 // Deduct points after successful mint
                 pointsManager.deductPoints(selectedNFTData.pointsRequired, currentAddress);
                 

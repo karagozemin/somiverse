@@ -11,7 +11,9 @@ class ContractManager {
             // Tokos.fi Lending Pool on Somnia
             lendingPool: '0x29edCCDB3aE8CDF0ea6077cd3E682BfA6dD53f19',
             faucet: '0x0000000000000000000000000000000000000000', // To be updated
-            nft: '0x0D62F7a3824cfa19AE70054509004772A9445E29', // SomiVerse NFT Contract (Deployed - 100k Common, 80k Rare, 50k Legendary - Optimized v2)
+            nft: '0x0D62F7a3824cfa19AE70054509004772A9445E29', // SomiVerse NFT Contract - Common (mintCommon)
+            nftRare: '0x7A00F34eD9e6013ceFb075aE9E04cbE63399FDd8', // SomiVerse NFT Contract - Rare (mintCommon)
+            nftLegendary: '0xa82dDea2B0fE3a44E2CB85Bd0Ab03D81Bd547305', // SomiVerse NFT Contract - Legendary (mintCommon)
             staking: '0x0000000000000000000000000000000000000000' // To be updated
         };
 
@@ -404,9 +406,28 @@ class ContractManager {
             
             console.log(`Minting NFT #${nftId}...`);
 
+            // Determine contract address and function based on NFT ID
+            let contractAddress;
+            let contractName;
+            if (nftId == 1) {
+                // Common NFT
+                contractAddress = this.contracts.nft;
+                contractName = 'Common';
+            } else if (nftId == 2) {
+                // Rare NFT
+                contractAddress = this.contracts.nftRare;
+                contractName = 'Rare';
+            } else if (nftId == 3) {
+                // Legendary NFT
+                contractAddress = this.contracts.nftLegendary;
+                contractName = 'Legendary';
+            } else {
+                throw new Error('Invalid NFT ID');
+            }
+
             // Get NFT contract
             const nftContract = new ethers.Contract(
-                this.contracts.nft,
+                contractAddress,
                 this.abis.nft,
                 signer
             );
@@ -417,59 +438,44 @@ class ContractManager {
             console.log('Sending mint transaction...');
             console.log('User address:', userAddress);
             console.log('Mint fee:', ethers.formatEther(mintFee), 'STT');
-            console.log('NFT Contract:', this.contracts.nft);
+            console.log('NFT Contract:', contractAddress, `(${contractName})`);
+            
+            // Determine which mint function to call based on NFT ID
+            let mintFunction;
+            let functionName;
+            if (nftId == 1) {
+                // Common NFT - use mintCommon()
+                mintFunction = nftContract.mintCommon;
+                functionName = 'mintCommon';
+            } else if (nftId == 2) {
+                // Rare NFT - use mintRare()
+                mintFunction = nftContract.mintRare;
+                functionName = 'mintRare';
+            } else if (nftId == 3) {
+                // Legendary NFT - use mintLegendary()
+                mintFunction = nftContract.mintLegendary;
+                functionName = 'mintLegendary';
+            }
             
             // Estimate gas first
-            let gasEstimate;
-            if (nftId == 1) {
-                // Common NFT
-                gasEstimate = await nftContract.mintCommon.estimateGas({
-                    value: mintFee
-                });
-            } else if (nftId == 2) {
-                // Rare NFT
-                gasEstimate = await nftContract.mintRare.estimateGas({
-                    value: mintFee
-                });
-            } else if (nftId == 3) {
-                // Legendary NFT
-                gasEstimate = await nftContract.mintLegendary.estimateGas({
-                    value: mintFee
-                });
-            } else {
-                throw new Error('Invalid NFT ID');
-            }
+            const gasEstimate = await mintFunction.estimateGas({
+                value: mintFee
+            });
             
             // Add 20% buffer to gas estimate
             const gasLimit = (gasEstimate * 120n / 100n).toString();
             console.log('Gas estimate:', gasEstimate.toString(), 'Gas limit:', gasLimit);
             
-            // Mint based on NFT ID: 1=Common, 2=Rare, 3=Legendary
-            let tx;
-            let mintFunction;
-            if (nftId == 1) {
-                // Common NFT
-                mintFunction = nftContract.mintCommon;
-            } else if (nftId == 2) {
-                // Rare NFT
-                mintFunction = nftContract.mintRare;
-            } else if (nftId == 3) {
-                // Legendary NFT
-                mintFunction = nftContract.mintLegendary;
-            } else {
-                throw new Error('Invalid NFT ID');
-            }
-            
-            // Call the mint function with value
+            // Call the appropriate mint function
             // This will create a transaction with:
-            // - to: NFT contract address
-            // - data: function selector (0x873b036a for mintCommon)
+            // - to: NFT contract address (varies by tier)
+            // - data: function selector (varies by function)
             // - value: 0.001 STT
-            console.log('Calling mint function...');
-            console.log('Contract address:', this.contracts.nft);
-            console.log('Function selector should be: 0x873b036a (mintCommon)');
+            console.log(`Calling ${functionName}() function...`);
+            console.log('Contract address:', contractAddress);
+            console.log(`Function: ${functionName}`);
             
-            tx = await mintFunction({
+            const tx = await mintFunction({
                 value: mintFee,
                 gasLimit: gasLimit
             });
@@ -543,8 +549,8 @@ class ContractManager {
                 price: '0.001 STT',
                 pointsRequired: 1500,
                 tier: 'Rare',
-                contractAddress: this.contracts.nft,
-                tokenId: 100001 // First Rare NFT token ID
+                contractAddress: this.contracts.nftRare,
+                tokenId: 1 // First Rare NFT token ID
             },
             {
                 id: 3,
@@ -554,8 +560,8 @@ class ContractManager {
                 price: '0.001 STT',
                 pointsRequired: 3000,
                 tier: 'Legendary',
-                contractAddress: this.contracts.nft,
-                tokenId: 180001 // First Legendary NFT token ID
+                contractAddress: this.contracts.nftLegendary,
+                tokenId: 1 // First Legendary NFT token ID
             }
         ];
     }
