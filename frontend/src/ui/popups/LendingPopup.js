@@ -743,7 +743,8 @@ export default class LendingPopup {
                     healthFactor = accountData[5];
                 }
             } catch (getUserAccountDataError) {
-                console.warn('getUserAccountData failed, using fallback method:', getUserAccountDataError);
+                // Silently fall back to alternative method - don't log errors to avoid console spam
+                // getUserAccountData may fail with "Fallback not allowed" error
                 useFallback = true;
             }
             
@@ -764,7 +765,7 @@ export default class LendingPopup {
                     
                     console.log('Loaded debt balance from debt token:', ethers.formatUnits(totalDebtETH, 18));
                 } catch (debtTokenError) {
-                    console.warn('Could not get debt balance from debt token, using 0:', debtTokenError);
+                    // Silently use 0 if debt token balance cannot be fetched
                     totalDebtETH = ethers.parseUnits('0', 18);
                 }
                 
@@ -784,8 +785,8 @@ export default class LendingPopup {
                     
                     console.log('Using fallback method - calculated available borrow from supplied balance and debt token');
                 } catch (fallbackError) {
-                    console.error('Fallback calculation failed:', fallbackError);
-                    // Use supplied balance to estimate
+                    // Final fallback: Use supplied balance to estimate
+                    // Silently handle errors to avoid console spam
                     const suppliedBalanceWei = ethers.parseUnits(this.suppliedBalance || '0', 18);
                     totalCollateralETH = suppliedBalanceWei;
                     // Estimate 75% of supplied as available borrow (assuming no debt)
@@ -930,31 +931,9 @@ export default class LendingPopup {
                 console.log('Error getting aToken balance, trying getUserReserveData...', aTokenError);
             }
             
-            // Method 3: Try getUserReserveData
-            try {
-                const userReserveData = await lendingPool.getUserReserveData(wsttAddress, userAddress);
-                // Parse tuple result
-                let currentATokenBalance;
-                if (Array.isArray(userReserveData)) {
-                    currentATokenBalance = userReserveData[0]; // First element is currentATokenBalance
-                } else if (userReserveData.currentATokenBalance) {
-                    currentATokenBalance = userReserveData.currentATokenBalance;
-                } else {
-                    currentATokenBalance = userReserveData[0];
-                }
-                
-                console.log('currentATokenBalance:', currentATokenBalance);
-                
-                if (currentATokenBalance && currentATokenBalance > 0) {
-                    this.suppliedBalance = ethers.formatUnits(currentATokenBalance, 18);
-                    console.log('Loaded supplied balance from getUserReserveData:', this.suppliedBalance);
-                    return;
-                } else {
-                    console.log('currentATokenBalance is zero, trying getUserAccountData...');
-                }
-            } catch (reserveDataError) {
-                console.log('Error getting user reserve data, trying getUserAccountData...', reserveDataError);
-            }
+            // Method 3: getUserReserveData is not available (Fallback not allowed error)
+            // Skipping this method as it causes "Fallback not allowed" errors
+            // We'll rely on aToken balanceOf and getUserAccountData instead
             
             // Method 4: Fallback to getUserAccountData
             try {
