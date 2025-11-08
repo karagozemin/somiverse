@@ -1029,10 +1029,7 @@ export default class LendingPopup {
                         <button style="padding: 4px 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: rgba(255, 255, 255, 0.7); font-size: 12px; font-weight: 600; cursor: default;">VARIABLE</button>
                     </td>
                     <td style="padding: 15px; text-align: center;">
-                        <div style="display: flex; gap: 8px; justify-content: center;">
-                            <button class="swap-btn" style="padding: 6px 12px; background: rgba(255, 200, 0, 0.2); border: 1px solid rgba(255, 200, 0, 0.4); border-radius: 6px; color: #FFC800; cursor: pointer; font-size: 12px; font-weight: 600;">Swap</button>
-                            <button class="repay-btn" style="padding: 6px 12px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 12px; font-weight: 600;">Repay</button>
-                        </div>
+                        <button class="repay-btn" style="padding: 6px 12px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 12px; font-weight: 600;">Repay</button>
                     </td>
                 </tr>
             `;
@@ -1145,10 +1142,7 @@ export default class LendingPopup {
                         </label>
                     </td>
                     <td style="padding: 15px; text-align: center;">
-                        <div style="display: flex; gap: 8px; justify-content: center;">
-                            <button class="swap-btn" style="padding: 6px 12px; background: rgba(255, 200, 0, 0.2); border: 1px solid rgba(255, 200, 0, 0.4); border-radius: 6px; color: #FFC800; cursor: pointer; font-size: 12px; font-weight: 600;">Swap</button>
-                            <button class="withdraw-btn" style="padding: 6px 12px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 12px; font-weight: 600;">Withdraw</button>
-                        </div>
+                        <button class="withdraw-btn" style="padding: 6px 12px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 12px; font-weight: 600;">Withdraw</button>
                     </td>
                 </tr>
             `;
