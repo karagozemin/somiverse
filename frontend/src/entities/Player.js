@@ -6,6 +6,7 @@ export default class Player {
         this.speed = 0.1;
         this.isMoving = false;
         this.currentDirection = 'idle';
+        this.lastDirection = { x: 0, y: 0 }; // Son hareket yönü
 
         // Calculate offset - TAM EKRAN için dinamik
         const offsetX = this.scene.cameras.main.width / 2;
@@ -13,12 +14,17 @@ export default class Player {
 
         // 🎮 Create cyberpunk character sprite
         const pos = this.scene.cartesianToIsometric(gridX, gridY);
-        this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY - 30, 'cyberpunk-char');
-        this.sprite.setOrigin(0.5, 0.75); // Alt orta pivot point (ayaklar)
-        this.sprite.setScale(0.5); // Boyut artırıldı - daha görünür olsun
+        this.sprite = this.scene.add.sprite(pos.x + offsetX, pos.y + offsetY - 50, 'character-sheet', 0);
+        this.sprite.setOrigin(0.5, 0.92); // Alt orta pivot point (ayaklar zemine oturur, kafa tam görünür)
+        this.sprite.setScale(0.55); // Karakter boyutu - oyun dünyasına uygun
         this.sprite.setDepth(10000); // Çok yüksek depth - her zaman en üstte
         
-        console.log('✅ Cyberpunk character created at:', this.sprite.x, this.sprite.y, 'depth:', this.sprite.depth);
+        console.log('✅ Karakter oluşturuldu:', {
+            position: { x: this.sprite.x, y: this.sprite.y },
+            frame: this.sprite.frame.name,
+            depth: this.sprite.depth,
+            scale: this.sprite.scale
+        });
 
         // 🎬 Create animations
         this.createAnimations();
@@ -30,24 +36,31 @@ export default class Player {
     }
     
     createAnimations() {
-        // IDLE animasyonu (Frame 2 - ortadaki frame)
+        // IDLE animasyonu (Frame 0 - Düz Durş)
         if (!this.scene.anims.exists('player-idle')) {
             this.scene.anims.create({
                 key: 'player-idle',
-                frames: this.scene.anims.generateFrameNumbers('cyberpunk-char', { start: 2, end: 2 }),
+                frames: [{ key: 'character-sheet', frame: 0 }],
                 frameRate: 1,
                 repeat: -1
             });
+            console.log('✅ IDLE animasyonu oluşturuldu (Frame 0)');
         }
         
-        // WALK animasyonu (Frame 4-11 - 8 yön yürüme)
+        // WALK animasyonu (Frame 1-2 - yürüme döngüsü)
         if (!this.scene.anims.exists('player-walk')) {
             this.scene.anims.create({
                 key: 'player-walk',
-                frames: this.scene.anims.generateFrameNumbers('cyberpunk-char', { start: 4, end: 11 }),
-                frameRate: 12, // Hızlı yürüme animasyonu
+                frames: [
+                    { key: 'character-sheet', frame: 1 },
+                    { key: 'character-sheet', frame: 2 },
+                    { key: 'character-sheet', frame: 1 },
+                    { key: 'character-sheet', frame: 0 } // Ara adım - daha akıcı
+                ],
+                frameRate: 10, // Yürüme hızı - daha hızlı ve akıcı
                 repeat: -1
             });
+            console.log('✅ WALK animasyonu oluşturuldu (Frame 0-1-2 döngüsü)');
         }
     }
 
@@ -67,16 +80,30 @@ export default class Player {
         // Convert to isometric position
         const pos = this.scene.cartesianToIsometric(this.gridX, this.gridY);
         this.sprite.x = pos.x + offsetX;
-        this.sprite.y = pos.y + offsetY - 30;
+        this.sprite.y = pos.y + offsetY - 50;
 
         this.updateDepth();
 
-        // 🎬 Play walk animation (hareket ediyor)
+        // 🎯 YÖN KONTROLÜ - Karakteri gidiş yönüne göre çevir
+        // Sol-Sağ kontrolü (X ekseni)
+        if (dirX < 0) {
+            // SOLA gidiyor - karakteri sola çevir
+            this.sprite.setFlipX(true);
+        } else if (dirX > 0) {
+            // SAĞA gidiyor - normal yön
+            this.sprite.setFlipX(false);
+        }
+        
+        // Yukarı-Aşağı için ek kontroller (isteğe bağlı)
+        // İzometrik görünümde Y hareketi genelde flip gerektirmez
+        
+        // 🎬 YÜRÜME ANİMASYONU OYNAT
         if (this.sprite.anims.currentAnim?.key !== 'player-walk') {
             this.sprite.play('player-walk');
         }
         
         this.isMoving = true;
+        this.lastDirection = { x: dirX, y: dirY };
     }
 
     updateDepth() {
