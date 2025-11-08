@@ -376,7 +376,7 @@ export default class MainScene extends Phaser.Scene {
         
         // 😂 MEME BİNASI - GÜNEY-DOĞU (Sağ alt) - 3 tile aşağı, 2 tile sağa
         const memeTexture = this.textures.exists('building-meme-img') ? 'building-meme-img' : 'building-nft';
-        this.buildings.push(new Building(this, 22, 22, memeTexture, 'Meme Gallery', 'nft'));
+        this.buildings.push(new Building(this, 22, 22, memeTexture, 'Mint Gallery', 'nft'));
         
         // 💰 LENDING BİNASI - GÜNEY-BATI (Sol alt) - 2 tile aşağı indirildi
         const lendingTexture = this.textures.exists('building-lending-img') ? 'building-lending-img' : 'building-faucet';
