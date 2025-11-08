@@ -1,6 +1,6 @@
 # SomiVerse - Isometric Web3 Universe
 
-![SomiVerse Logo](./frontend/src/assets/logo.jpeg)
+<img src="./frontend/src/assets/logo.jpeg" alt="SomiVerse Logo" width="200" height="200" />
 
 An isometric universe game built on the Somnia blockchain. Developed using Phaser.js game engine.
 
