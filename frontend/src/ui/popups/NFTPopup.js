@@ -10,8 +10,9 @@ export default class NFTPopup {
     }
 
     render(title) {
-        const reward = pointsManager.getReward('nft');
         const nfts = contractManager.getNFTCollection();
+        const currentAddress = walletManager.address;
+        const currentPoints = pointsManager.getPoints(currentAddress);
         
         return `
             <div class="popup-header">
@@ -26,34 +27,41 @@ export default class NFTPopup {
 
                 <div style="max-height: 300px; overflow-y: auto; margin: 20px 0;">
                     <div id="nft-grid" style="display: grid; grid-template-columns: 1fr; gap: 15px;">
-                        ${nfts.map(nft => `
-                            <div class="nft-card" data-nft-id="${nft.id}" style="
+                        ${nfts.map(nft => {
+                            const hasEnoughPoints = currentPoints >= nft.pointsRequired;
+                            return `
+                            <div class="nft-card" data-nft-id="${nft.id}" data-points-required="${nft.pointsRequired}" style="
                                 background: rgba(255, 255, 255, 0.05);
                                 border: 2px solid transparent;
                                 border-radius: 12px;
                                 padding: 15px;
                                 cursor: pointer;
                                 transition: all 0.3s ease;
+                                opacity: ${hasEnoughPoints ? '1' : '0.6'};
                             ">
                                 <div style="display: flex; gap: 15px; align-items: center;">
-                                    <img src="${nft.image}" style="width: 80px; height: 80px; border-radius: 8px;" alt="${nft.name}">
+                                    <img src="${nft.image}" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover;" alt="${nft.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+TkZUPC90ZXh0Pjwvc3ZnPg=='">
                                     <div style="flex: 1;">
                                         <h3 style="margin: 0 0 5px 0; font-size: 16px;">${nft.name}</h3>
-                                        <p style="margin: 0 0 10px 0; opacity: 0.7; font-size: 12px;">${nft.description}</p>
-                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <p style="margin: 0 0 8px 0; opacity: 0.7; font-size: 12px;">${nft.description}</p>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                                             <span style="color: #FF0080; font-weight: 600;">${nft.price}</span>
-                                            <span style="font-size: 12px; opacity: 0.6;">#${nft.id}</span>
+                                            <span style="font-size: 12px; color: ${hasEnoughPoints ? '#4ade80' : '#f87171'}; font-weight: 600;">
+                                                ${nft.pointsRequired} pts ${hasEnoughPoints ? '✓' : '✗'}
+                                            </span>
                                         </div>
+                                        ${!hasEnoughPoints ? `<p style="margin: 0; font-size: 11px; color: #f87171;">Need ${nft.pointsRequired - currentPoints} more points</p>` : ''}
                                     </div>
                                 </div>
                             </div>
-                        `).join('')}
+                        `;
+                        }).join('')}
                     </div>
                 </div>
 
-                <div class="info-row" style="background: rgba(255, 0, 128, 0.1);">
-                    <span class="info-label">Points Reward:</span>
-                    <span class="info-value" style="color: #FF0080; font-weight: 700;">+${reward}</span>
+                <div class="info-row" style="background: rgba(255, 255, 255, 0.05); margin-bottom: 15px;">
+                    <span class="info-label">Your Points:</span>
+                    <span class="info-value" style="color: #FF0080; font-weight: 700;">${currentPoints}</span>
                 </div>
 
                 <button class="action-button" id="mint-btn" disabled>
@@ -91,11 +99,21 @@ export default class NFTPopup {
         // Highlight selected
         card.style.border = '2px solid #FF0080';
         this.selectedNFT = card.dataset.nftId;
+        
+        const pointsRequired = parseInt(card.dataset.pointsRequired);
+        const currentAddress = walletManager.address;
+        const currentPoints = pointsManager.getPoints(currentAddress);
+        const hasEnoughPoints = currentPoints >= pointsRequired;
 
-        // Enable mint button
+        // Enable/disable mint button based on points
         const mintBtn = document.getElementById('mint-btn');
-        mintBtn.disabled = false;
-        mintBtn.textContent = `Mint NFT #${this.selectedNFT}`;
+        if (hasEnoughPoints) {
+            mintBtn.disabled = false;
+            mintBtn.textContent = `Mint NFT #${this.selectedNFT}`;
+        } else {
+            mintBtn.disabled = true;
+            mintBtn.textContent = `Need ${pointsRequired} points (You have ${currentPoints})`;
+        }
     }
 
     async mintNFT() {
@@ -103,6 +121,22 @@ export default class NFTPopup {
 
         if (!walletManager.isConnected) {
             this.showMessage('Please connect your wallet first', 'error');
+            return;
+        }
+
+        // Get NFT info and check points
+        const nfts = contractManager.getNFTCollection();
+        const selectedNFTData = nfts.find(nft => nft.id == this.selectedNFT);
+        
+        if (!selectedNFTData) {
+            this.showMessage('NFT not found', 'error');
+            return;
+        }
+
+        const currentAddress = walletManager.address;
+        const currentPoints = pointsManager.getPoints(currentAddress);
+        if (currentPoints < selectedNFTData.pointsRequired) {
+            this.showMessage(`Insufficient points! You need ${selectedNFTData.pointsRequired} points but only have ${currentPoints}`, 'error');
             return;
         }
 
@@ -116,13 +150,14 @@ export default class NFTPopup {
             const result = await contractManager.mintNFT(this.selectedNFT);
             
             if (result.success) {
+                // Deduct points after successful mint
+                pointsManager.deductPoints(selectedNFTData.pointsRequired, currentAddress);
+                
                 this.showMessage(result.message, 'success');
                 toastManager.success(`NFT #${this.selectedNFT} minted successfully!`);
                 
                 setTimeout(() => {
-                    const reward = pointsManager.getReward('nft');
-                    this.showMessage(`🎉 +${reward} Points Earned!`, 'success');
-                    toastManager.success(`+${reward} Points!`, 2000);
+                    this.showMessage(`Points deducted: -${selectedNFTData.pointsRequired}`, 'success');
                 }, 1500);
 
                 setTimeout(() => {

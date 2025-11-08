@@ -36,6 +36,31 @@ class PointsManager {
         const normalizedAddress = address.toLowerCase();
         return this.pointsData[normalizedAddress] || 0;
     }
+    
+    deductPoints(amount, address) {
+        if (!address) {
+            console.error('Cannot deduct points: address required');
+            return false;
+        }
+        
+        const normalizedAddress = address.toLowerCase();
+        const currentPoints = this.getPoints(normalizedAddress);
+        
+        if (currentPoints < amount) {
+            console.error(`Insufficient points: ${currentPoints} < ${amount}`);
+            return false;
+        }
+        
+        const newPoints = currentPoints - amount;
+        this.pointsData[normalizedAddress] = newPoints;
+        this.savePoints();
+        
+        // Update UI
+        this.updatePointsDisplay(newPoints);
+        
+        console.log(`Deducted ${amount} points. Remaining: ${newPoints}`);
+        return true;
+    }
 
     addPoints(address, actionType) {
         if (!address) return 0;

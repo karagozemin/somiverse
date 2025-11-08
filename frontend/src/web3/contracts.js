@@ -11,7 +11,7 @@ class ContractManager {
             // Tokos.fi Lending Pool on Somnia
             lendingPool: '0x29edCCDB3aE8CDF0ea6077cd3E682BfA6dD53f19',
             faucet: '0x0000000000000000000000000000000000000000', // To be updated
-            nft: '0x0000000000000000000000000000000000000000', // To be updated
+            nft: '0x0D62F7a3824cfa19AE70054509004772A9445E29', // SomiVerse NFT Contract (Deployed - 100k Common, 80k Rare, 50k Legendary - Optimized v2)
             staking: '0x0000000000000000000000000000000000000000' // To be updated
         };
 
@@ -67,6 +67,14 @@ class ContractManager {
                 'function getUserAccountData(address user) external view returns (uint256 totalCollateralETH, uint256 totalDebtETH, uint256 availableBorrowsETH, uint256 currentLiquidationThreshold, uint256 ltv, uint256 healthFactor)',
                 'function getReserveData(address asset) external view returns (tuple(address aTokenAddress, address stableDebtTokenAddress, address variableDebtTokenAddress, address interestRateStrategyAddress, uint8 id))',
                 'function getUserReserveData(address asset, address user) external view returns (uint256 currentATokenBalance, uint256 currentStableDebt, uint256 currentVariableDebt, uint256 principalStableDebt, uint256 scaledVariableDebt, uint256 liquidityRate, uint40 stableRateLastUpdated, bool usageAsCollateralEnabled)'
+            ],
+            nft: [
+                'function mintCommon() external payable returns (uint256)',
+                'function mintRare() external payable returns (uint256)',
+                'function mintLegendary() external payable returns (uint256)',
+                'function ownerOf(uint256 tokenId) external view returns (address)',
+                'function balanceOf(address owner) external view returns (uint256)',
+                'function tokenURI(uint256 tokenId) external view returns (string)'
             ]
         };
     }
@@ -391,20 +399,121 @@ class ContractManager {
                 throw new Error('Please connect your wallet first');
             }
 
+            const signer = walletManager.getSigner();
+            const userAddress = walletManager.getAddress();
+            
             console.log(`Minting NFT #${nftId}...`);
 
-            // Mock implementation
-            await this.simulateTransaction();
+            // Get NFT contract
+            const nftContract = new ethers.Contract(
+                this.contracts.nft,
+                this.abis.nft,
+                signer
+            );
 
-            // Award points
-            const address = walletManager.getAddress();
-            pointsManager.addPoints(address, 'nft');
+            // Mint fee: 0.001 STT
+            const mintFee = ethers.parseEther('0.001');
+            
+            console.log('Sending mint transaction...');
+            console.log('User address:', userAddress);
+            console.log('Mint fee:', ethers.formatEther(mintFee), 'STT');
+            console.log('NFT Contract:', this.contracts.nft);
+            
+            // Estimate gas first
+            let gasEstimate;
+            if (nftId == 1) {
+                // Common NFT
+                gasEstimate = await nftContract.mintCommon.estimateGas({
+                    value: mintFee
+                });
+            } else if (nftId == 2) {
+                // Rare NFT
+                gasEstimate = await nftContract.mintRare.estimateGas({
+                    value: mintFee
+                });
+            } else if (nftId == 3) {
+                // Legendary NFT
+                gasEstimate = await nftContract.mintLegendary.estimateGas({
+                    value: mintFee
+                });
+            } else {
+                throw new Error('Invalid NFT ID');
+            }
+            
+            // Add 20% buffer to gas estimate
+            const gasLimit = (gasEstimate * 120n / 100n).toString();
+            console.log('Gas estimate:', gasEstimate.toString(), 'Gas limit:', gasLimit);
+            
+            // Mint based on NFT ID: 1=Common, 2=Rare, 3=Legendary
+            let tx;
+            let mintFunction;
+            if (nftId == 1) {
+                // Common NFT
+                mintFunction = nftContract.mintCommon;
+            } else if (nftId == 2) {
+                // Rare NFT
+                mintFunction = nftContract.mintRare;
+            } else if (nftId == 3) {
+                // Legendary NFT
+                mintFunction = nftContract.mintLegendary;
+            } else {
+                throw new Error('Invalid NFT ID');
+            }
+            
+            // Call the mint function with value
+            // This will create a transaction with:
+            // - to: NFT contract address
+            // - data: function selector (0x873b036a for mintCommon)
+            // - value: 0.001 STT
+            console.log('Calling mint function...');
+            console.log('Contract address:', this.contracts.nft);
+            console.log('Function selector should be: 0x873b036a (mintCommon)');
+            
+            tx = await mintFunction({
+                value: mintFee,
+                gasLimit: gasLimit
+            });
+            
+            console.log('Transaction created:', {
+                to: tx.to,
+                value: tx.value?.toString(),
+                data: tx.data,
+                hash: tx.hash
+            });
+
+            console.log('Waiting for confirmation...', tx.hash);
+            const receipt = await tx.wait();
+
+            console.log('NFT minted successfully!', receipt);
+
+            // Get token ID from receipt (if available) or use nftId
+            let tokenId = nftId;
+            if (receipt.logs && receipt.logs.length > 0) {
+                // Try to extract token ID from Transfer event
+                try {
+                    const transferEvent = receipt.logs.find(log => {
+                        try {
+                            const parsed = nftContract.interface.parseLog(log);
+                            return parsed && parsed.name === 'Transfer';
+                        } catch {
+                            return false;
+                        }
+                    });
+                    if (transferEvent) {
+                        const parsed = nftContract.interface.parseLog(transferEvent);
+                        tokenId = parsed.args.tokenId.toString();
+                    }
+                } catch (e) {
+                    console.log('Could not extract token ID from logs, using nftId');
+                }
+            }
 
             return {
                 success: true,
                 message: `Successfully minted NFT #${nftId}!`,
-                txHash: '0x' + Math.random().toString(16).substring(2, 66),
-                tokenId: nftId
+                txHash: tx.hash,
+                tokenId: tokenId,
+                receipt: receipt
             };
         } catch (error) {
             console.error('NFT mint error:', error);
@@ -413,28 +522,40 @@ class ContractManager {
     }
 
     getNFTCollection() {
-        // Mock NFT collection
+        // Real NFT collection - SomiVerse NFTs
         return [
             {
                 id: 1,
-                name: 'Somnia Genesis #1',
-                description: 'The first NFT in the SomiVerse collection',
-                image: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0idXJsKCNncmFkKSIvPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0ZGMDA4MDsiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwMEQ0RkY7Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiPiMxPC90ZXh0Pjwvc3ZnPg==',
-                price: '0.1 STT'
+                name: 'SomiVerse Common',
+                description: 'Common tier NFT - Requires 500 points to mint',
+                image: '/nfts/nft-common.jpeg',
+                price: '0.001 STT',
+                pointsRequired: 500,
+                tier: 'Common',
+                contractAddress: this.contracts.nft,
+                tokenId: 1 // First Common NFT token ID
             },
             {
                 id: 2,
-                name: 'Somnia Genesis #2',
-                description: 'The second NFT in the SomiVerse collection',
-                image: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0idXJsKCNncmFkKSIvPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhCNUNGNjsiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNGRjAwODA7Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiPiMyPC90ZXh0Pjwvc3ZnPg==',
-                price: '0.1 STT'
+                name: 'SomiVerse Rare',
+                description: 'Rare tier NFT - Requires 1500 points to mint',
+                image: '/nfts/nft-rare.jpeg',
+                price: '0.001 STT',
+                pointsRequired: 1500,
+                tier: 'Rare',
+                contractAddress: this.contracts.nft,
+                tokenId: 100001 // First Rare NFT token ID
             },
             {
                 id: 3,
-                name: 'Somnia Genesis #3',
-                description: 'The third NFT in the SomiVerse collection',
-                image: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0idXJsKCNncmFkKSIvPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwRDRGRjsiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4QjVDRjY7Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiPiMzPC90ZXh0Pjwvc3ZnPg==',
-                price: '0.1 STT'
+                name: 'SomiVerse Legendary',
+                description: 'Legendary tier NFT - Requires 3000 points to mint',
+                image: '/nfts/nft-legendary.jpeg',
+                price: '0.001 STT',
+                pointsRequired: 3000,
+                tier: 'Legendary',
+                contractAddress: this.contracts.nft,
+                tokenId: 180001 // First Legendary NFT token ID
             }
         ];
     }
