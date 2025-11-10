@@ -494,38 +494,19 @@ body::before {
 }
 
 .somiverse-title {
-    font-size: 120px;
-    font-weight: 900;
-    letter-spacing: 20px;
-    background: linear-gradient(135deg, var(--somnia-pink) 0%, var(--somnia-purple) 50%, var(--somnia-cyan) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 20px;
-    text-shadow: 0 0 40px rgba(255, 0, 128, 0.5);
+    max-width: 900px;
+    width: auto;
+    height: auto;
+    max-height: 350px;
+    margin: 0 auto 20px;
+    display: block;
+    filter: drop-shadow(0 0 60px rgba(255, 0, 128, 0.6));
     transform-origin: center center;
     position: relative;
     z-index: 10;
-    will-change: transform, opacity;
+    will-change: transform, opacity, filter;
     transition: all 0.3s ease;
-    transform-style: preserve-3d;
-}
-
-.somiverse-title::before {
-    content: 'SomiVerse';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, var(--somnia-pink) 0%, var(--somnia-purple) 50%, var(--somnia-cyan) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    filter: blur(20px);
-    opacity: 0.6;
-    z-index: -1;
-    animation: glow 2s ease-in-out infinite alternate;
+    object-fit: contain;
 }
 
 .somiverse-title.pulse {
