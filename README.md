@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./Somi.png" alt="SomiVerse" />
+  <img src="./Somi.png" alt="SomiVerse" width="400" height="auto" />
 </div>
 
 # Isometric Web3 Universe
